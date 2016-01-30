@@ -7,3 +7,9 @@
 
 # Debug files
 *.debug
+
+# Autocomplete
+.clang_complete
+
+# Image files
+*.img
