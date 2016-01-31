@@ -1,5 +1,5 @@
 # Object files
-*.o
+obj/
 
 # Executables
 *.out

@@ -1,5 +1,6 @@
 #include <x86.h>
-#include <ata.h>
+
+#include "ata.h"
 
 // see http://wiki.osdev.org/ATA_PIO_Mode
 #define ATA_PIO_PORT_DATA	0x1F0

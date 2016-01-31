@@ -1,5 +1,5 @@
-#include <ata.h>
 #include <elf.h>
+#include <fs/ata.h>
 
 #define KERNEL_LOADER_ADDRESS	0x10000
 
