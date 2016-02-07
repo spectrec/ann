@@ -86,7 +86,7 @@ ${LOADER_OBJDIR}/loader.o: ${LOADER_DIR}/loader.c
 
 # Qemu specific
 qemu: ${IMAGE}
-	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S -m 64M
 
 clean:
 	rm -rf ${OBJDIR} ${IMAGE}

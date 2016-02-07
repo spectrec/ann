@@ -38,6 +38,36 @@ boot_entry:
 
 	a20_enabled:
 
+	// Store memory map into 0x7e00 (0x7c00 + 512)
+	movw $0x7de8, %di // 0x7e00 - 24
+	xorl %ebx, %ebx
+
+	// before first call `%edx' must contain this magic value
+	movl $0x534d4150, %edx // `SMAP'
+	xorl %esi, %esi
+
+	detect_high_memory:
+		movl $0xe820, %eax
+		movl $24, %ecx
+		addw $24, %di
+		int $0x15
+
+		// carry flag is clear in case all is ok
+		jc memory_detected
+
+		// magic value must be inside `%eax' in case success call
+		cmpl $0x534d4150, %eax // `SMAP'
+		jne memory_detected
+
+		// increase records count
+		incl %esi
+
+		// `%ebx' will be set to `0' at the end of list
+		test %ebx, %ebx
+		jnz detect_high_memory
+
+	memory_detected:
+
 	// enable protected mode (set first bit in cr0)
 	movl %cr0, %eax
 	orl  $0x1, %eax
@@ -59,6 +89,12 @@ complete_flush:
 
 	// setup stack, and start our C part of the bootloader
 	movl $boot_entry, %esp
+
+	// Ugly hack, to store records count. It works in case bootloader
+	// size lower than 508 bytes
+	movl $0x7e00, %edi
+	movl %esi, -4(%edi)
+
 	call bootmain
 
 	// we should never reach this code
