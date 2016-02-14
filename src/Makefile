@@ -74,7 +74,7 @@ LOADER_OBJECTS := ${LOADER_OBJDIR}/entry.o ${LOADER_OBJDIR}/loader.o
 LOADER_DEPS := $(patsubst %.o,%.d,${LOADER_OBJCECTS})
 
 $(LOADER): ${LOADER_OBJECTS}
-	$(GCC_X86) -T ${LOADER_DIR}/linker.ld -o $@ ${LOADER_LDFLAGS} $^
+	$(GCC_X86) -T ${LOADER_DIR}/linker.ld -o $@ $^ ${LOADER_LDFLAGS}
 
 ${LOADER_OBJDIR}/entry.o: ${LOADER_DIR}/entry.S
 	$(AS_X86) -o $@ $^
@@ -86,7 +86,7 @@ ${LOADER_OBJDIR}/loader.o: ${LOADER_DIR}/loader.c
 
 # Qemu specific
 qemu: ${IMAGE}
-	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S -m 64M
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S -m 32M
 
 clean:
 	rm -rf ${OBJDIR} ${IMAGE}
