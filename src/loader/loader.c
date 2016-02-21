@@ -1,30 +1,7 @@
-#include <queue.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <util.h>
+#include <mm/mmap.h>
+
 #include <stdbool.h>
-
-struct page {
-	LIST_ENTRY(page) link;
-	uint32_t ref;
-};
-LIST_HEAD(free_pages, page) free_pages = LIST_HEAD_INITIALIZER(free_pages);
-struct page *pages;
-
-#define CONCAT(a_, b_) a_ ## b_
-#define CONCAT2(a_, b_) CONCAT(a_, b_)
-#define UNIQ_TOKEN(name_) CONCAT2(name_, __LINE__)
-
-#define ROUND_DOWN(addr_, align_) ({				\
-	__typeof__(addr_) UNIQ_TOKEN(addr) = addr_;		\
-	UNIQ_TOKEN(addr) - (UNIQ_TOKEN(addr) % (align_));	\
-})
-
-#define ROUND_UP(addr_, align_) ({					\
-	__typeof__(align_) UNIQ_TOKEN(align) = align_;			\
-	ROUND_DOWN(addr_ + UNIQ_TOKEN(align) - 1, UNIQ_TOKEN(align));	\
-})
-
-#define assert(expr_) // FIXME
 
 void *alloc(uint64_t size, uint32_t align)
 {
@@ -41,60 +18,19 @@ void *alloc(uint64_t size, uint32_t align)
 	return ret;
 }
 
-struct page *page_alloc(void)
+uint64_t load_kernel(void)
 {
-	struct page *p = LIST_FIRST(&free_pages);
+	// Long mode requires page table hierarchy and a bit assembly magic,
+	// so let's prepare page table hierarchy.
 
-	if (p != NULL)
-		LIST_REMOVE(p, link);
-	assert(p->ref == 0);
-
-	return p;
+	return 0;
 }
 
-void page_free(struct page *p)
-{
-	LIST_INSERT_HEAD(&free_pages, p, link);
-}
-
-void page_incref(struct page *p)
-{
-	p->ref++;
-}
-
-void page_decref(struct page *p)
-{
-	assert(p->ref > 0);
-	p->ref--;
-
-	if (p->ref == 0)
-		page_free(p);
-}
-
-#define PAGE_SIZE 4096
-uint64_t page2pa(struct page *p)
-{
-	uint64_t idx = (pages - p) / sizeof(*p);
-
-	return idx * PAGE_SIZE;
-}
-
-// TODO: rewrite it with assembly
-void *memcpy(void *dest, const void *src, size_t n)
-{
-	const char *s = src;
-	char *d = dest;
-
-	for (size_t i = 0; i < n; i++)
-		d[i] = s[i];
-
-	return dest;
-}
-
-// TODO: enter long mode and run kernel
 __attribute__((noreturn))
-void enter_long_mode(void)
+void enter_long_mode(uint64_t kernel_entry_address)
 {
+	(void)kernel_entry_address;
+
 	while (1)
 		/*do nothing*/;
 }
@@ -150,7 +86,7 @@ void loader_main(void)
 	}
 
 	// Allocate array of page descriptors. Each element represents one physycal page.
-	uint32_t free_cnt, page_cnt = ROUND_DOWN(high_memory_address, PAGE_SIZE) / PAGE_SIZE;
+	uint32_t page_cnt = ROUND_DOWN(high_memory_address, PAGE_SIZE) / PAGE_SIZE;
 	pages = (struct page *)alloc(sizeof(struct page) * page_cnt, PAGE_SIZE);
 	for (uint32_t i = 0; i < page_cnt; i++) {
 		uint64_t page_addr = (uint64_t)i * PAGE_SIZE;
@@ -162,15 +98,8 @@ void loader_main(void)
 
 		LIST_INSERT_HEAD(&free_pages, &pages[i], link);
 		pages[i].ref = 0;
-		free_cnt++;
 	}
 
-	// Long mode requires page table hierarchy and a bit assembly magic,
-	// so let's prepare page table hierarchy.
-
-	// TODO:
-	// - create page tables hierarchy
-	// - read and map kernel
-
-	enter_long_mode();
+	uint64_t kernel_entry_addr = load_kernel();
+	enter_long_mode(kernel_entry_addr);
 }

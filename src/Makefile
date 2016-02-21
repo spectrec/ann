@@ -70,7 +70,8 @@ $(BOOTLOADER): ${BOOTLOADER_OBJCECTS}
 LOADER_CFLAGS := ${CFLAGS} -O0
 LOADER_LDFLAGS := ${LDFLAGS} -O0 -lgcc
 
-LOADER_OBJECTS := ${LOADER_OBJDIR}/entry.o ${LOADER_OBJDIR}/loader.o
+LOADER_OBJECTS := ${LOADER_OBJDIR}/entry.o ${LOADER_OBJDIR}/loader.o \
+		  ${LOADER_OBJDIR}/mmap.o
 LOADER_DEPS := $(patsubst %.o,%.d,${LOADER_OBJCECTS})
 
 $(LOADER): ${LOADER_OBJECTS}
@@ -78,6 +79,12 @@ $(LOADER): ${LOADER_OBJECTS}
 
 ${LOADER_OBJDIR}/entry.o: ${LOADER_DIR}/entry.S
 	$(AS_X86) -o $@ $^
+
+${LOADER_OBJDIR}/string.o: ${LIB_DIR}/string.c
+	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
+
+${LOADER_OBJDIR}/mmap.o: ${LIB_DIR}/mm/mmap.c
+	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
 
 ${LOADER_OBJDIR}/loader.o: ${LOADER_DIR}/loader.c
 	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
