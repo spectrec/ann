@@ -4,6 +4,7 @@
 // User segment flags
 #define USF_G (1<<15)		// granularity: set limit in 4k blocks
 #define USF_D (1<<14)		// default operand size: 32bit
+#define USF_L (1<<13)		// run processor in 64bit (long) mode
 #define USF_P (1<<7)		// segment present
 #define USF_S (1<<4)		// user segment
 
@@ -52,7 +53,7 @@ struct descriptor {
 } __attribute__ ((packed));
 
 // See amd64 documentation (vol 2: System Programming)
-#define SEGMENT_DESC(flags_, base_, limit_) (struct descriptor) {		\
+#define SEGMENT_DESC(flags_, base_, limit_) {					\
 	.dwords = {								\
 		.a = ((limit_) & 0xffff) | (((base_) & 0xffff) << 16),		\
 		.b = (((base_) >> 16) & 0xff) | (((flags_) & 0xf0ff) << 8) |	\
@@ -60,6 +61,6 @@ struct descriptor {
 	}									\
 }
 
-#endif // __ASSEMBLER__
+#endif // ! __ASSEMBLER__
 
 #endif // __GDT_H__

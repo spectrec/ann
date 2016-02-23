@@ -68,9 +68,9 @@ static int8_t disk_io_read(void *dst, uint32_t lba, uint8_t count)
 	return 0;
 }
 
-int8_t disk_io_read_segment(uint32_t va, uint32_t size, uint32_t lba)
+int8_t disk_io_read_segment(uintptr_t va, uint32_t size, uint32_t lba)
 {
-	uint32_t va_end = va + size;
+	uintptr_t va_end = va + size;
 
 	// round down to sector boundary
 	va &= ~(ATA_SECTOR_SIZE - 1);

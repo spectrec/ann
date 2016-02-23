@@ -6,6 +6,6 @@
 
 #define ATA_SECTOR_SIZE		512
 
-int8_t disk_io_read_segment(uint32_t va, uint32_t size, uint32_t lba);
+int8_t disk_io_read_segment(uintptr_t va, uint32_t size, uint32_t lba);
 
 #endif

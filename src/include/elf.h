@@ -5,8 +5,6 @@
 
 #define ELF_MAGIC 0x464C457FU /* "\x7FELF" in little endian */
 
-#ifdef __i386__
-
 typedef uint32_t Elf32_Addr;
 typedef uint16_t Elf32_Half;
 typedef uint32_t Elf32_Off;
@@ -42,8 +40,6 @@ struct elf32_program_header {
 	Elf32_Word p_align;	// aligment of segment
 };
 
-#else
-
 typedef uint64_t Elf64_Addr;
 typedef uint64_t Elf64_Off;
 typedef uint16_t Elf64_Half;
@@ -76,12 +72,10 @@ struct elf64_program_header {
 	Elf64_Off p_offset;	// offset in file
 	Elf64_Addr p_va;	// virtual address in memory
 	Elf64_Addr p_pa;	// reserved
-	Elf64_XWord p_filesz;	// size of segment in file
-	Elf64_XWord p_memsz;	// size of segment in memory
-	Elf64_XWord p_align;	// aligment of segment
+	Elf64_Xword p_filesz;	// size of segment in file
+	Elf64_Xword p_memsz;	// size of segment in memory
+	Elf64_Xword p_align;	// aligment of segment
 };
-
-#endif // __i386__
 
 // p_type
 #define ELF_PHEADER_TYPE_LOAD	1
