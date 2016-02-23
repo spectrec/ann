@@ -19,7 +19,7 @@
 #define PDE_ADDR(paddr_)	((uint64_t)((paddr_) & ~0xfff))
 #define PTE_ADDR(paddr_)	((uint64_t)((paddr_) & ~0xfff))
 
-#define IDX_MASK ((1 << 10) - 1) // 111111111b
+#define IDX_MASK ((1 << 9) - 1) // 111111111b
 #define PML4_IDX(addr_)	(((uint64_t)addr_ >> PML4_SHIFT) & IDX_MASK)
 #define PDP_IDX(addr_)	(((uint64_t)addr_ >> PDP_SHIFT)  & IDX_MASK)
 #define PD_IDX(addr_)	(((uint64_t)addr_ >> PD_SHIFT)   & IDX_MASK)

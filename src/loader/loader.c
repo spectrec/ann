@@ -27,6 +27,8 @@ int map_section(struct mmap_state *state, uint64_t va, uintptr_t pa, uint64_t le
 		pte_t *pte = mmap_lookup(state->pml4, va_aligned + i, true);
 		if (pte == NULL)
 			return -1;
+		if ((*pte & PTE_P) != 0)
+			return -1;
 
 		*pte = PTE_ADDR(pa + i) | PTE_P | PTE_W;
 	}
@@ -65,6 +67,9 @@ uint64_t load_kernel(struct mmap_state *state)
 	}
 
 	for (; ph < eph; ph++) {
+		if (ph->p_type != ELF_PHEADER_TYPE_LOAD)
+			continue;
+
 		uint32_t lba = (ph->p_offset / ATA_SECTOR_SIZE) + KERNEL_BASE_DISK_SECTOR;
 		if (disk_io_read_segment((uintptr_t)kernel, ph->p_memsz, lba) != 0)
 			return LOAD_KERNEL_ERROR;
@@ -121,9 +126,6 @@ void enter_long_mode(struct mmap_state *state, uint64_t kernel_entry_vaddr)
 	gdtr.limit = sizeof(gdt);
 	gdtr.base = (uintptr_t)gdt;
 	gdtr.zero = 0;
-
-	if (map_section(state, 0x0, 0x0, (uintptr_t)end) != 0)
-		return;
 
 	// Reload gdt
 	asm volatile("lgdt gdtr");
@@ -241,6 +243,11 @@ void loader_main(void)
 		LIST_INSERT_HEAD(&state->free, &state->pages[i], link);
 		state->pages[i].ref = 0;
 	}
+
+	// Map loader, to make all addresses valid after paging enable
+	//if (map_section(state, 0x0, 0x0, (uintptr_t)end) != 0)
+	if (map_section(state, 0x0, 0x0, (uintptr_t)free_memory) != 0)
+		return;
 
 	// TODO: make `pml4', `state' and `pages' available for kernel
 

@@ -6,7 +6,7 @@ entry_long_mode_asm:
 	movl %esp, %ebp
 
 	// Enable/disable debug (1 - debug, 0 - nodebug)
-	movl $1, %eax
+	movl $0, %eax
 	popl %edx
 
 	// Reload cs, to switch from compatible mode into long mode
