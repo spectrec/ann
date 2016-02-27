@@ -3,8 +3,7 @@ ENTRY(kernel_main)
 SECTIONS
 {
 	/* Start from -32GB */
-	/*. = 0xFFFFFFF800000000; FIXME*/
-	. = 0xF0100000;
+	. = 0xFFFFFFF800000000;
 
 	.text BLOCK(4K) : ALIGN(4K)
 	{
@@ -28,7 +27,6 @@ SECTIONS
 	{
 		*(COMMON)
 		*(.bss)
-		*(.bootstrap_stack)
 	}
 
 	/* Make `end' page aligned */

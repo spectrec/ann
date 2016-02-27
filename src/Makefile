@@ -114,16 +114,24 @@ ${LOADER_OBJDIR}/ata.o: ${LIB_DIR}/fs/ata.c
 
 
 # Kernel specific
-KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=0xFFFFFFF800000000
+KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=0xFFFFFFF800000000 -mcmodel=large \
+		 -mno-red-zone -mno-mmx -mno-sse -mno-sse2
 KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc
 
-KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o
+KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
+		  ${KERNEL_OBJDIR}/string.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
 	$(GCC_X64) -T ${KERNEL_DIR}/linker.ld -o $@ $^ ${KERNEL_LDFLAGS}
 
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/string.o: ${LIB_DIR}/string.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/terminal.o: ${LIB_DIR}/console/terminal.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 -include ${KERNEL_DEPS}

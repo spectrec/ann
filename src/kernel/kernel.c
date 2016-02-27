@@ -1,14 +1,26 @@
-void kernel_main(void)
+#include <assert.h>
+#include <console/terminal.h>
+
+panic_t panic;
+void kernel_panic(const char *fmt, ...)
 {
-	char *memory = (char *)0xb8000;
-	memory[0] = 'k'; memory[0] = 'k';
-	memory[1] = 'e'; memory[1] = 'e';
-	memory[2] = 'r'; memory[2] = 'r';
-	memory[3] = 'n'; memory[3] = 'n';
-	memory[4] = 'e'; memory[4] = 'e';
-	memory[5] = 'l'; memory[5] = 'l';
+	va_list ap;
+
+	va_start(ap, fmt);
+	terminal_vprintf(fmt, ap);
+	va_end(ap);
 
 	while (1) {
 		/*do nothing*/;
 	}
+}
+
+void kernel_main(void)
+{
+	terminal_init();
+
+	// Initialize assert
+	panic = kernel_panic;
+
+	panic("Nothing to do");
 }

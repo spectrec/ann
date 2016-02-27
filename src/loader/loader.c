@@ -2,11 +2,15 @@
 #include <elf.h>
 #include <util.h>
 #include <string.h>
+#include <assert.h>
 #include <fs/ata.h>
 #include <mm/mmap.h>
 
 extern uint8_t end[];
 static uint8_t *free_memory = end;
+
+// If you need panic here - implement it
+panic_t panic = NULL;
 
 void *alloc(uint64_t size, uint32_t align)
 {
