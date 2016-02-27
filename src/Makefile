@@ -61,7 +61,7 @@ BOOTLOADER_LDFLAGS := --entry=boot_entry -Ttext 0x7c00
 BOOTLOADER_OBJCECTS := ${BOOTLOADER_OBJDIR}/entry.o ${BOOTLOADER_OBJDIR}/main.o ${BOOTLOADER_OBJDIR}/ata.o
 BOOTLOADER_DEPS := $(patsubst %.o,%.d,${BOOTLOADER_OBJCECTS})
 
-${BOOTLOADER_OBJDIR}/ata.o: ${LIB_DIR}/fs/ata.c
+${BOOTLOADER_OBJDIR}/ata.o: ${LIB_DIR}/disk/ata.c
 	$(GCC_X86) -c -o $@ $< ${BOOTLOADER_CFLAGS}
 
 ${BOOTLOADER_OBJDIR}/main.o: ${BOOTLOADER_DIR}/main.c
@@ -107,7 +107,7 @@ ${LOADER_OBJDIR}/mmap.o: ${LIB_DIR}/mm/mmap.c
 ${LOADER_OBJDIR}/loader.o: ${LOADER_DIR}/loader.c
 	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
 
-${LOADER_OBJDIR}/ata.o: ${LIB_DIR}/fs/ata.c
+${LOADER_OBJDIR}/ata.o: ${LIB_DIR}/disk/ata.c
 	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
 
 -include ${LOADER_DEPS}

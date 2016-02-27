@@ -3,8 +3,8 @@
 #include <util.h>
 #include <string.h>
 #include <assert.h>
-#include <fs/ata.h>
 #include <mm/mmap.h>
+#include <disk/ata.h>
 
 extern uint8_t end[];
 static uint8_t *free_memory = end;
