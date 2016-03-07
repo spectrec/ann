@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "mmap.h"
+#include "layout.h"
 
 // This struct is initialized by second stage loader for kernel
 static struct mmap_state *mmap_state;

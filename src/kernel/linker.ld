@@ -2,8 +2,8 @@ ENTRY(kernel_main)
 
 SECTIONS
 {
-	/* Start from -32GB */
-	. = 0xFFFFFFF800000000;
+	/* Start from -32GB + 2MB */
+	. = 0xFFFFFFF800200000;
 
 	.text BLOCK(4K) : ALIGN(4K)
 	{
@@ -22,6 +22,8 @@ SECTIONS
 		*(.data)
 	}
 
+	PROVIDE(edata = .);
+
 	/* Read-write data (uninitialized) and stack */
 	.bss BLOCK(4K) : ALIGN(4K)
 	{
@@ -29,7 +31,5 @@ SECTIONS
 		*(.bss)
 	}
 
-	/* Make `end' page aligned */
-	. = ALIGN(4K);
 	PROVIDE(end = .);
 }

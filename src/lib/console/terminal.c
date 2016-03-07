@@ -1,5 +1,6 @@
 #include <string.h>
 #include <assert.h>
+#include <mm/layout.h>
 
 #include "terminal.h"
 
@@ -172,7 +173,7 @@ void terminal_clear(void)
 	terminal_color = terminal_make_color(TERMINAL_COLOR_WHITE, TERMINAL_COLOR_BLACK);
 	terminal_column = terminal_row = 0;
 
-	terminal_buffer = (uint16_t *)0xb8000;
+	terminal_buffer = (uint16_t *)(0xb8000 + VADDR_BASE);
 	memset(terminal_buffer, 0, TERMINAL_ROW_COUNT * TERMINAL_ROW_SIZE);
 }
 

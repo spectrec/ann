@@ -28,10 +28,7 @@ SECTIONS
 	{
 		*(COMMON)
 		*(.bss)
-		*(.bootstrap_stack)
 	}
 
-	/* Make `end' page aligned */
-	. = ALIGN(4K);
 	PROVIDE(end = .);
 }

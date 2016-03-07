@@ -13,3 +13,6 @@ obj/
 
 # Image files
 *.img
+
+# Ctags
+tags

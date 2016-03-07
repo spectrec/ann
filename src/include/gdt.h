@@ -53,7 +53,7 @@ struct descriptor {
 } __attribute__ ((packed));
 
 // See amd64 documentation (vol 2: System Programming)
-#define SEGMENT_DESC(flags_, base_, limit_) {					\
+#define SEGMENT_DESC(flags_, base_, limit_) (struct descriptor){		\
 	.dwords = {								\
 		.a = ((limit_) & 0xffff) | (((base_) & 0xffff) << 16),		\
 		.b = (((base_) >> 16) & 0xff) | (((flags_) & 0xf0ff) << 8) |	\
@@ -62,5 +62,11 @@ struct descriptor {
 }
 
 #endif // ! __ASSEMBLER__
+
+#define GD_KT	(sizeof(struct descriptor) << 0)
+#define GD_KD	(sizeof(struct descriptor) << 1)
+#define GD_UD	(sizeof(struct descriptor) << 2)
+#define GD_UT	(sizeof(struct descriptor) << 3)
+#define GD_TSS	(sizeof(struct descriptor) << 4)
 
 #endif // __GDT_H__

@@ -1,8 +1,11 @@
+#include <mm/layout.h>
+
 .section .text
 .global _start
+
 .type _start, @function
 _start:
-	movl $stack_top, %esp
+	movl $boot_stack_top, %esp
 	movl $0x0, %ebp
 
 	# This function should not return
@@ -13,8 +16,15 @@ _start:
 hang:
 	jmp hang
 
-# Allocate new stack (`just in case'), `@nobits' - to make `ld' happy
-.section .bootstrap_stack @nobits
-stack_bottom:
-.skip 16384 # 16 KiB
-stack_top:
+.data
+
+# Allocate new stack (for loader and kernel)
+.p2align PAGE_SHIFT
+
+.global boot_stack
+boot_stack:
+
+.skip KERNEL_STACK_SIZE
+
+.global boot_stack_top
+boot_stack_top:

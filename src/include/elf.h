@@ -85,4 +85,25 @@ struct elf64_program_header {
 #define ELF_PHEADER_FLAG_WRITE	0x2
 #define ELF_PHEADER_FLAG_READ	0x4
 
+#define ELF_HEADER(arch_)	arch_ ## _header
+#define ELF_PHEADER(arch_)	arch_ ## _program_header
+
+#define ELF_PHEADER_FIRST(eh_, arch_) ({		\
+	void *ph_ = ((uint8_t *)eh_ + eh_->e_phoff);	\
+	(struct ELF_PHEADER(arch_) *)ph_;		\
+})
+
+#define ELF_PHEADER_LAST(eh_, arch_) ({			\
+	struct ELF_PHEADER(arch_) *fph_;		\
+							\
+	fph_ = ELF_PHEADER_FIRST(eh_, arch_);		\
+	fph_ + eh_->e_phnum;				\
+})
+
+#define ELF64_PHEADER_FIRST(header_) ELF_PHEADER_FIRST(header_, elf64)
+#define ELF64_PHEADER_LAST(header_) ELF_PHEADER_LAST(header_, elf64)
+
+#define ELF32_PHEADER_FIRST(header_) ELF_PHEADER_FIRST(header_, elf32)
+#define ELF32_PHEADER_LAST(header_) ELF_PHEADER_LAST(header_, elf32)
+
 #endif // __ELF_H__

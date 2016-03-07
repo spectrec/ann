@@ -1,5 +1,8 @@
+#include <mm/layout.h>
+
 .section .long_mode_asm
 .global entry_long_mode_asm
+
 .type entry_long_mode_asm, @function
 entry_long_mode_asm:
 	pushl %ebp
@@ -23,4 +26,5 @@ long_mode:
 enter_kernel:
 	movq 8(%ebp), %rax
 
+	movq $KERNEL_STACK_TOP, %rsp
 	jmp *%rax

@@ -16,6 +16,9 @@ OBJCOPY_X86=${GCC_PREFIX_X86}objcopy
 QEMU=qemu-system-x86_64
 PERL=perl
 
+# Where to load kernel (-32Gb)
+KERNEL_BASE := 0xFFFFFFF800000000
+
 # Common `CFLAGS' and `LDFLAGS'
 CFLAGS += -Wall -Wextra -Werror		\
 	  -ffreestanding -nostdlib	\
@@ -81,22 +84,23 @@ $(BOOTLOADER): ${BOOTLOADER_OBJCECTS}
 
 
 # Loader specific
-LOADER_CFLAGS := ${CFLAGS} -O0
+LOADER_CFLAGS := ${CFLAGS} -O0 -DKERNEL_BASE=${KERNEL_BASE}
 LOADER_LDFLAGS := ${LDFLAGS} -O0 -lgcc
 
 LOADER_OBJECTS := ${LOADER_OBJDIR}/entry.o ${LOADER_OBJDIR}/loader.o \
 		  ${LOADER_OBJDIR}/mmap.o ${LOADER_OBJDIR}/ata.o \
-		  ${LOADER_OBJDIR}/string.o ${LOADER_OBJDIR}/long_mode.o
+		  ${LOADER_OBJDIR}/string.o ${LOADER_OBJDIR}/long_mode.o \
+		  ${LOADER_OBJDIR}/terminal.o
 LOADER_DEPS := $(patsubst %.o,%.d,${LOADER_OBJCECTS})
 
 $(LOADER): ${LOADER_OBJECTS}
 	$(GCC_X86) -T ${LOADER_DIR}/linker.ld -o $@ $^ ${LOADER_LDFLAGS}
 
 ${LOADER_OBJDIR}/entry.o: ${LOADER_DIR}/entry.S
-	$(AS_X86) -o $@ $^
+	$(GCC_X86) -c -o $@ $^ ${LOADER_CFLAGS}
 
 ${LOADER_OBJDIR}/long_mode.o: ${LOADER_DIR}/long_mode.S
-	$(AS_X86) -o $@ $^
+	$(GCC_X86) -c -o $@ $^ ${LOADER_CFLAGS}
 
 ${LOADER_OBJDIR}/string.o: ${LIB_DIR}/string.c
 	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
@@ -110,22 +114,28 @@ ${LOADER_OBJDIR}/loader.o: ${LOADER_DIR}/loader.c
 ${LOADER_OBJDIR}/ata.o: ${LIB_DIR}/disk/ata.c
 	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
 
+${LOADER_OBJDIR}/terminal.o: ${LIB_DIR}/console/terminal.c
+	$(GCC_X86) -c -o $@ $< ${LOADER_CFLAGS}
+
 -include ${LOADER_DEPS}
 
 
 # Kernel specific
-KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=0xFFFFFFF800000000 -mcmodel=large \
+KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=${KERNEL_BASE} -mcmodel=large \
 		 -mno-red-zone -mno-mmx -mno-sse -mno-sse2
 KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc
 
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
-		  ${KERNEL_OBJDIR}/string.o
+		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
 	$(GCC_X64) -T ${KERNEL_DIR}/linker.ld -o $@ $^ ${KERNEL_LDFLAGS}
 
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/mmap.o: ${LIB_DIR}/mm/mmap.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 ${KERNEL_OBJDIR}/string.o: ${LIB_DIR}/string.c
