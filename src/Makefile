@@ -41,7 +41,7 @@ LOADER := ${LOADER_OBJDIR}/loader
 KERNEL := ${KERNEL_OBJDIR}/kernel
 BOOTLOADER := ${BOOTLOADER_OBJDIR}/bootloader
 
-all: dirs ${IMAGE}
+all: ${IMAGE}
 
 dirs:
 	@mkdir -p ${BOOTLOADER_OBJDIR}
@@ -49,7 +49,7 @@ dirs:
 	@mkdir -p ${KERNEL_OBJDIR}
 
 # Image specific
-${IMAGE}: $(BOOTLOADER) $(LOADER) $(KERNEL)
+${IMAGE}: dirs $(BOOTLOADER) $(LOADER) $(KERNEL)
 	dd if=/dev/zero of=${IMAGE} bs=1M count=10
 	dd if=$(BOOTLOADER) of=${IMAGE} conv=notrunc
 	dd if=$(LOADER) of=${IMAGE} seek=1 conv=notrunc
@@ -126,13 +126,20 @@ KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=${KERNEL_BASE} -mcmodel=large \
 KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc
 
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
-		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o
+		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o \
+		  ${KERNEL_OBJDIR}/interrupt.o ${KERNEL_OBJDIR}/isr_entry.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
 	$(GCC_X64) -T ${KERNEL_DIR}/linker.ld -o $@ $^ ${KERNEL_LDFLAGS}
 
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/isr_entry.o: ${KERNEL_DIR}/isr_entry.S
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/interrupt.o: ${KERNEL_DIR}/interrupt.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 ${KERNEL_OBJDIR}/mmap.o: ${LIB_DIR}/mm/mmap.c
@@ -148,8 +155,11 @@ ${KERNEL_OBJDIR}/terminal.o: ${LIB_DIR}/console/terminal.c
 
 
 # Qemu specific
-qemu: ${IMAGE}
+qemu-gdb: ${IMAGE}
 	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S -m 32M
+
+qemu: ${IMAGE}
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw
 
 clean:
 	rm -rf ${OBJDIR} ${IMAGE}

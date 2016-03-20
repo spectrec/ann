@@ -1,11 +1,15 @@
-#include <assert.h>
 #include <string.h>
 #include <config.h>
 #include <mm/mmap.h>
 #include <mm/layout.h>
 #include <console/terminal.h>
 
-panic_t panic;
+#include "kernel.h"
+#include "interrupt.h"
+
+void kernel_panic(const char *fmt, ...);
+panic_t panic = kernel_panic;
+
 void kernel_panic(const char *fmt, ...)
 {
 	va_list ap;
@@ -71,12 +75,14 @@ void kernel_main(void)
 	extern uint8_t edata[], end[];
 	memset(edata, 0, end - edata);
 
+	// Reset terminal (without this output will not work)
 	terminal_init();
 
-	// Initialize assert
-	panic = kernel_panic;
-
+	// Initialize memory (process info prepared by loader)
 	kernel_init_mmap();
+
+	// Enable interrupts and exceptions
+	interrupt_init();
 
 	panic("Nothing to do");
 }

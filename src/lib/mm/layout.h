@@ -24,4 +24,13 @@
 
 #define KERNEL_INFO		(VPT - PAGE_SIZE)
 
+// Physical address of the APIC base
+#define APIC_BASE_PA	0xFEE00000
+// Physical address of the IO APIC base
+#define IOAPIC_BASE_PA	0xFEC00000
+
+// Virtual address of the APIC base
+#define APIC_BASE	(KERNEL_INFO - PAGE_SIZE)
+#define IOAPIC_BASE	(APIC_BASE - PAGE_SIZE)
+
 #endif

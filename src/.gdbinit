@@ -26,7 +26,7 @@ end
 define debug-kernel
 	set architecture i386:x86-64
 
-	add-symbol-file obj/kernel/kernel 0xfffffff800000000
+	add-symbol-file obj/kernel/kernel 0xFFFFFFF800200000
 
 	layout src
 end

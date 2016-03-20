@@ -206,6 +206,14 @@ int loader_init_memory(struct bios_mmap_entry *mm, uint32_t cnt)
 	if (loader_map_section(&state, KERNEL_INFO, (uintptr_t)config, PAGE_SIZE) != 0)
 		return -1;
 
+	// Make APIC registers available for the kernel
+	if (loader_map_section(&state, APIC_BASE, APIC_BASE_PA, PAGE_SIZE) != 0)
+		return -1;
+
+	// Make IO APIC registers available for the kernel
+	if (loader_map_section(&state, IOAPIC_BASE, IOAPIC_BASE_PA, PAGE_SIZE) != 0)
+		return -1;
+
 	// Map loader to make all addresses valid after paging enable
 	// (before jump to kernel entry point). We must map all until
 	// `free_memory' not just `end', because `pml4' located after `end'
@@ -254,6 +262,14 @@ bool page_is_available(uint64_t paddr, struct bios_mmap_entry *mm, uint32_t cnt)
 	if (paddr == 0)
 		// The first page contain some useful bios data strutures.
 		// Reserve it just in case.
+		return false;
+
+	if (paddr >= APIC_BASE_PA && paddr < APIC_BASE_PA + PAGE_SIZE)
+		// APIC registers mapped here
+		return false;
+
+	if (paddr >= IOAPIC_BASE_PA && paddr < IOAPIC_BASE_PA + PAGE_SIZE)
+		// IO APIC registers mapped here
 		return false;
 
 	if (paddr >= (uint64_t)(uintptr_t)end &&
