@@ -16,3 +16,15 @@ obj/
 
 # Ctags
 tags
+
+# Temporary files
+*.swp
+
+# Latex files
+*.pdf
+*.aux
+*.toc
+*.log
+*.blg
+*.bbl
+.deps
