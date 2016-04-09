@@ -1,3 +1,4 @@
+#include <x86.h>
 #include <string.h>
 #include <config.h>
 #include <mm/mmap.h>
@@ -32,6 +33,10 @@ struct page32 {
 void kernel_init_mmap(void)
 {
 	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
+	struct gdtr {
+		uint16_t limit;
+		uint64_t base;
+	} __attribute__((packed)) gdtr;
 	static struct mmap_state state;
 	struct page32 *pages32;
 
@@ -46,6 +51,13 @@ void kernel_init_mmap(void)
 	state.pages_cnt = config->pages_cnt;
 	state.pages = config->pages.ptr;
 	mmap_init(&state);
+
+	sgdt(gdtr);
+
+	// We must reload gdt to avoid page fault when accessing it after
+	// removing unneeded mappings
+	gdtr.base = config->gdt.uintptr;
+	asm volatile("lgdt (%0)" : : "p"(&gdtr));
 
 	pages32 = (struct page32 *)config->pages.ptr;
 	state.pml4[0] = 0; // remove unneeded mappings
@@ -83,6 +95,8 @@ void kernel_main(void)
 
 	// Enable interrupts and exceptions
 	interrupt_init();
+
+	asm volatile("int3");
 
 	panic("Nothing to do");
 }

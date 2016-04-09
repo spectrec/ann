@@ -1,3 +1,4 @@
+#include <x86.h>
 #include <gdt.h>
 #include <elf.h>
 #include <util.h>
@@ -54,7 +55,6 @@ int loader_map_section(struct mmap_state *state, uint64_t va, uintptr_t pa, uint
 bool page_is_available(uint64_t paddr, struct bios_mmap_entry *mm, uint32_t cnt);
 
 struct descriptor *loader_init_gdt(void);
-void loader_init_gdtr(void);
 
 int loader_read_kernel(uint64_t *kernel_entry_point);
 void loader_enter_long_mode(uint64_t kernel_entry_point);
@@ -155,7 +155,6 @@ int loader_init_memory(struct bios_mmap_entry *mm, uint32_t cnt)
 	memset(config, 0, sizeof(*config));
 
 	gdt = loader_init_gdt();
-	loader_init_gdtr();
 
 	// Allocate and init PML4
 	pml4 = loader_alloc(PAGE_SIZE, PAGE_SIZE);
@@ -223,11 +222,17 @@ int loader_init_memory(struct bios_mmap_entry *mm, uint32_t cnt)
 	return 0;
 }
 
-#define NGDT_ENTRIES	6
+#define NGDT_ENTRIES	5
 struct descriptor *loader_init_gdt(void)
 {
-	// In long mode base and limit of the segment descriptors are ignored
-	struct descriptor *gdt = loader_alloc(sizeof(struct descriptor) * NGDT_ENTRIES, 8);
+	uint16_t user_segments_size = sizeof(struct descriptor) * NGDT_ENTRIES;
+	uint16_t system_segmnets_size = sizeof(struct descriptor64) * GD_TSS_MAX;
+	uint16_t gdt_size = user_segments_size + system_segmnets_size;
+	struct descriptor *gdt = loader_alloc(gdt_size, 16);
+
+	gdtr.base = (uintptr_t)gdt;
+	gdtr.limit = gdt_size - 1;
+	gdtr.zero = 0;
 
 	// Null descriptor - just in case
 	gdt[0] = SEGMENT_DESC(0, 0x0, 0x0);
@@ -244,17 +249,7 @@ struct descriptor *loader_init_gdt(void)
 	// User data (all fields, except `USF_P' are ignored)
 	gdt[GD_UD >> 3] = SEGMENT_DESC(USF_P | USF_S | DPL_U | UST_W, 0x0, 0xffffffff);
 
-	// Tss decriptor, will be initialized later
-	gdt[GD_TSS >> 3] = SEGMENT_DESC(0, 0x0, 0x0);
-
 	return gdt;
-}
-
-void loader_init_gdtr(void)
-{
-	gdtr.limit = sizeof(struct descriptor) * NGDT_ENTRIES;
-	gdtr.base = (uintptr_t)gdt;
-	gdtr.zero = 0;
 }
 
 bool page_is_available(uint64_t paddr, struct bios_mmap_entry *mm, uint32_t cnt)

@@ -20,12 +20,16 @@
 #define TYPE_CALL_GATE		0xc
 #define TYPE_INTERRUPT_GATE	0xe
 #define TYPE_TRAP_GATE		0xf
+#define TYPE_AVAILABLE_TSS	0x9
 
 #define DPL_U (0x3 << 5)
 #define DPL_S (0)
 
 #define IDT_DPL_U (0x3)
 #define IDT_DPL_S (0)
+
+#define TSS_DPL_U (0x3)
+#define TSS_DPL_S (0)
 
 #ifdef __ASSEMBLER__
 
@@ -37,6 +41,24 @@
 #else
 
 #include <stdint.h>
+
+struct tss {
+	uint32_t reserved0;
+	uint64_t rsp0;
+	uint64_t rsp1;
+	uint64_t rsp2;
+	uint64_t reserved1;
+	uint64_t ist1;
+	uint64_t ist2;
+	uint64_t ist3;
+	uint64_t ist4;
+	uint64_t ist5;
+	uint64_t ist6;
+	uint64_t ist7;
+	uint64_t reserved2;
+	uint16_t reserved3;
+	uint16_t io_map_base;
+} __attribute__((packed));
 
 struct descriptor {
 	union {
@@ -65,7 +87,7 @@ struct descriptor {
 
 
 // XXX: `s' must be zero
-struct gate {
+struct descriptor64 {
 	union {
 		struct {
 			uint32_t a;
@@ -75,15 +97,6 @@ struct gate {
 		} dwords;
 
 		struct {
-			uint16_t limit0;
-			uint16_t base0;
-			uint16_t base1: 8, type: 4, s: 1, dpl: 2, p: 1;
-			uint16_t limit: 4, avl: 1, unused0: 2, g: 1, base2: 8;
-			uint32_t base3;
-			uint32_t reserved0: 8, zero: 5, reserved1 : 19;
-		} call;
-
-		struct {
 			uint16_t target_offset0;
 			uint16_t target_selector;
 			uint16_t ist: 2, reserved0: 6, type: 4, s: 1, dpl: 2, p: 1;
@@ -91,32 +104,65 @@ struct gate {
 			uint32_t target_offset2;
 			uint32_t reserved1;
 		} interrupt, trap, gate;
+
+		struct {
+			uint16_t segment_limit0;
+			uint16_t base_address0;
+			uint16_t base_address1: 8, type: 4, s: 1, dpl: 2, p: 1;
+			uint16_t segment_limit1: 4, avl: 1, ign: 2, g: 1, base_address2: 8;
+			uint32_t base_address3;
+			uint32_t mbz;
+		} tss;
 	};
 } __attribute__ ((packed));
 
-#define GATE(sel_, off_, ist_, type_, dpl_) (struct gate) {	\
-	.gate = {						\
-		.target_offset0 = ((off_) & 0xffff),		\
-		.target_selector = (sel_),			\
-		.ist = (ist_),					\
-		.type = (type_),				\
-		.s = 0,						\
-		.dpl = (dpl_),					\
-		.p = 1,						\
-		.target_offset1 = (((off_) >> 16) & 0xffff),	\
-		.target_offset2 = ((off_) >> 32),		\
-	}							\
+#define GATE(sel_, off_, ist_, type_, dpl_) (struct descriptor64) {	\
+	.gate = {							\
+		.target_offset0 = ((off_) & 0xffff),			\
+		.target_selector = (sel_),				\
+		.ist = (ist_),						\
+		.type = (type_),					\
+		.s = 0,							\
+		.dpl = (dpl_),						\
+		.p = 1,							\
+		.target_offset1 = (((off_) >> 16) & 0xffff),		\
+		.target_offset2 = ((off_) >> 32),			\
+	}								\
 }
 
 #define TRAP_GATE(sel_, off_, ist_, dpl_) GATE(sel_, ((uint64_t)off_), ist_, TYPE_INTERRUPT_GATE, dpl_)
 #define INTERRUPT_GATE(sel_, off_, ist_, dpl_) GATE(sel_, ((uint64_t)off_), ist_, TYPE_TRAP_GATE, dpl_)
 
+#define TSS(base_, limit_, type_, dpl_) (struct descriptor64) {	\
+	.tss = {						\
+		.segment_limit0 = ((limit_) & 0xffff),		\
+		.base_address0 = ((base_) & 0xffff),		\
+		.base_address1 = (((base_) >> 16) & 0xff),	\
+		.type = (type_),				\
+		.s = 0,						\
+		.dpl = (dpl_),					\
+		.p = 1,						\
+		.segment_limit1 = (((limit_) >> 16) & 0xf),	\
+		.avl = 0,					\
+		.ign = 0,					\
+		.g = 0,						\
+		.base_address2 = (((base_) >> 24) & 0xff),	\
+		.base_address3 = ((base_ >> 32) & 0xffffffff),	\
+		.mbz = 0,					\
+	}							\
+}
+
+#define SEGMENT_TSS(base, limit, type, dpl) TSS((uint64_t)base, (uint32_t)limit, type, dpl)
+
 #endif // ! __ASSEMBLER__
 
-#define GD_KT	(sizeof(struct descriptor) << 0ul)
-#define GD_KD	(sizeof(struct descriptor) << 1ul)
-#define GD_UD	(sizeof(struct descriptor) << 2ul)
-#define GD_UT	(sizeof(struct descriptor) << 3ul)
-#define GD_TSS	(sizeof(struct descriptor) << 4ul)
+#define GD_KT	(0x0008)
+#define GD_KD	(0x0010)
+#define GD_UD	(0x0018)
+#define GD_UT	(0x0020)
+
+// TSS descriptors are 128bit long.
+#define GD_TSS	(0x0028)
+#define GD_TSS_MAX 32
 
 #endif // __GDT_H__

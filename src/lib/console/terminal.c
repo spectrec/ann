@@ -151,6 +151,40 @@ void terminal_vprintf(const char *fmt, va_list ap)
 			terminal_print_digit((uint64_t)digit, 16);
 			break;
 		}
+		case 'l': {
+			switch (*(++fmt)) {
+			case 'd': {
+				int64_t digit = va_arg(ap, int64_t);
+				if (digit < 0) {
+					terminal_put('-');
+					digit = -digit;
+				}
+
+				terminal_print_digit(digit, 10);
+				break;
+			}
+			case 'u': {
+				uint64_t digit = va_arg(ap, uint64_t);
+				terminal_print_digit(digit, 10);
+				break;
+			}
+			case 'b': {
+				uint64_t digit = va_arg(ap, uint64_t);
+				terminal_print_digit(digit, 2);
+				break;
+			}
+			case 'x': {
+				uint64_t digit = va_arg(ap, uint64_t);
+				terminal_printf("0x");
+				terminal_print_digit(digit, 16);
+				break;
+			}
+			default:
+				panic("\nformat `l%c' not implemented", *fmt);
+			}
+
+			break;
+		}
 		default:
 			panic("\nformat `%c' not implemented", *fmt);
 		}

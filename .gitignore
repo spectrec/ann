@@ -20,6 +20,9 @@ tags
 # Temporary files
 *.swp
 
+# Dia temporary files
+*~
+
 # Latex files
 *.pdf
 *.aux

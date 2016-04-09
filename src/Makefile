@@ -20,11 +20,11 @@ PERL=perl
 KERNEL_BASE := 0xFFFFFFF800000000
 
 # Common `CFLAGS' and `LDFLAGS'
-CFLAGS += -Wall -Wextra -Werror		\
-	  -ffreestanding -nostdlib	\
-	  -std=gnu11 -g -Iinclude -Ilib	\
+CFLAGS += -Wall -Wextra -Werror			\
+	  -ffreestanding -nostdlib		\
+	  -std=gnu11 -ggdb3 -Iinclude -Ilib	\
 	  -MMD -MP
-LDFLAGS += -ffreestanding -nostdlib -g
+LDFLAGS += -ffreestanding -nostdlib -ggdb3
 
 LIB_DIR := lib
 LOADER_DIR := loader
@@ -127,7 +127,8 @@ KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc
 
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
 		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o \
-		  ${KERNEL_OBJDIR}/interrupt.o ${KERNEL_OBJDIR}/isr_entry.o
+		  ${KERNEL_OBJDIR}/interrupt.o ${KERNEL_OBJDIR}/interrupt_entry.o \
+		  ${KERNEL_OBJDIR}/task.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
@@ -136,7 +137,10 @@ $(KERNEL): ${KERNEL_OBJECTS}
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
-${KERNEL_OBJDIR}/isr_entry.o: ${KERNEL_DIR}/isr_entry.S
+${KERNEL_OBJDIR}/task.o: ${KERNEL_DIR}/task.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/interrupt_entry.o: ${KERNEL_DIR}/interrupt_entry.S
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 ${KERNEL_OBJDIR}/interrupt.o: ${KERNEL_DIR}/interrupt.c

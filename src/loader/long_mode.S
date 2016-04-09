@@ -1,4 +1,5 @@
 #include <mm/layout.h>
+#include <gdt.h>
 
 .section .long_mode_asm
 .global entry_long_mode_asm
@@ -13,7 +14,7 @@ entry_long_mode_asm:
 	popl %edx
 
 	// Reload cs, to switch from compatible mode into long mode
-	ljmp $0x8, $long_mode
+	ljmp $GD_KT, $long_mode
 
 .code64
 long_mode:

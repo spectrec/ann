@@ -23,6 +23,11 @@ static inline void outb(int port, uint8_t data)
 	__asm__ volatile("outb %0,%w1" : : "a" (data), "d" (port));
 }
 
+static inline void ltr(uint16_t sel)
+{
+	__asm__ volatile("ltr %0" : : "r" (sel));
+}
+
 static inline void invlpg(void *m)
 {
 	/* Clobber memory to avoid optimizer re-ordering access before invlpg,
@@ -45,5 +50,8 @@ static inline uint64_t rdmsr(uint32_t msr_id)
 	__asm__ volatile("rdmsr" : "=A" (value) : "c" (msr_id));
 	return value;
 }
+
+#define sgdt(gdtr) \
+	__asm__ volatile("sgdt %0" : : "m"(gdtr) : "memory")
 
 #endif

@@ -1,3 +1,4 @@
+#include <x86.h>
 #include <assert.h>
 #include <string.h>
 
@@ -124,4 +125,57 @@ pde_found:
 	pte_t *pt = VADDR(PDE_ADDR(pde));
 
 	return &pt[PT_IDX(va)];
+}
+
+int page_insert(pml4e_t *pml4, struct page *p, uintptr_t va, uint8_t perm)
+{
+	pte_t *pte = mmap_lookup(pml4, va, 1);
+	if (pte == NULL)
+		// no memory
+		return -1;
+
+	// remap same page (possible change permissions)
+	if (PTE_ADDR(*pte) == page2pa(p)) {
+		*pte = page2pa(p) | perm | PTE_P;
+		return 0;
+	}
+
+	// delete old mapping if exists
+	page_remove(pml4, va);
+
+	*pte = page2pa(p) | perm | PTE_P;
+	page_incref(p);
+
+	return 0;
+}
+
+void page_remove(pml4e_t *pml4, uintptr_t va)
+{
+	struct page *p;
+	pte_t *pte;
+
+	p = page_lookup(pml4, va, &pte);
+	if (p == NULL)
+		// nothing to do
+		return;
+
+	page_decref(p);
+	*pte = 0;
+
+	invlpg((void *)va);
+}
+
+struct page *page_lookup(pml4e_t *pml4, uintptr_t va, pte_t **pte_p)
+{
+	pte_t *pte;
+
+	pte = mmap_lookup(pml4, va, 0);
+	if (pte_p != NULL)
+		*pte_p = pte;
+
+	if (pte == NULL || (*pte & PTE_P) == 0)
+		// nothing to do
+		return NULL;
+
+	return pa2page(PTE_ADDR(*pte));
 }
