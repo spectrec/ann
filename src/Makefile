@@ -27,11 +27,13 @@ CFLAGS += -Wall -Wextra -Werror			\
 LDFLAGS += -ffreestanding -nostdlib -ggdb3
 
 LIB_DIR := lib
+USER_DIR := user
 LOADER_DIR := loader
 KERNEL_DIR := kernel
 BOOTLOADER_DIR := boot
 
 OBJDIR := obj
+USER_OBJDIR := ${OBJDIR}/${USER_DIR}
 KERNEL_OBJDIR := ${OBJDIR}/${KERNEL_DIR}
 LOADER_OBJDIR := ${OBJDIR}/${LOADER_DIR}
 BOOTLOADER_OBJDIR := ${OBJDIR}/${BOOTLOADER_DIR}
@@ -40,6 +42,7 @@ IMAGE := disk.img
 LOADER := ${LOADER_OBJDIR}/loader
 KERNEL := ${KERNEL_OBJDIR}/kernel
 BOOTLOADER := ${BOOTLOADER_OBJDIR}/bootloader
+USER_PROGRAMMS := ${USER_OBJDIR}/hello.bin
 
 all: ${IMAGE}
 
@@ -47,9 +50,10 @@ dirs:
 	@mkdir -p ${BOOTLOADER_OBJDIR}
 	@mkdir -p ${LOADER_OBJDIR}
 	@mkdir -p ${KERNEL_OBJDIR}
+	@mkdir -p ${USER_OBJDIR}
 
 # Image specific
-${IMAGE}: dirs $(BOOTLOADER) $(LOADER) $(KERNEL)
+${IMAGE}: dirs $(BOOTLOADER) $(LOADER) $(USER_PROGRAMMS) $(KERNEL)
 	dd if=/dev/zero of=${IMAGE} bs=1M count=10
 	dd if=$(BOOTLOADER) of=${IMAGE} conv=notrunc
 	dd if=$(LOADER) of=${IMAGE} seek=1 conv=notrunc
@@ -123,7 +127,7 @@ ${LOADER_OBJDIR}/terminal.o: ${LIB_DIR}/console/terminal.c
 # Kernel specific
 KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=${KERNEL_BASE} -mcmodel=large \
 		 -mno-red-zone -mno-mmx -mno-sse -mno-sse2
-KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc
+KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc -Wl,--format=binary -Wl,${USER_PROGRAMMS} -Wl,--format=default
 
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
 		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o \
@@ -156,6 +160,21 @@ ${KERNEL_OBJDIR}/terminal.o: ${LIB_DIR}/console/terminal.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 -include ${KERNEL_DEPS}
+
+
+# User specific
+USER_CFLAGS := ${CFLAGS} -O0
+USER_LDFLAGS := ${LDFLAGS} -O0 -lgcc
+
+USER_DEPS := $(patsubst %.bin,%.d,${USER_PROGRAMMS})
+
+${USER_OBJDIR}/%.o: ${USER_DIR}/%.c
+	$(GCC_X64) -c -o $@ $< ${USER_CFLAGS}
+
+${USER_OBJDIR}/%.bin: ${USER_OBJDIR}/%.o ${USER_OBJDIR}/entry.o
+	$(GCC_X64) -T ${USER_DIR}/linker.ld -o $@ $^ ${USER_LDFLAGS}
+
+-include ${USER_DEPS}
 
 
 # Qemu specific
