@@ -24,16 +24,20 @@
 
 #define KERNEL_INFO		(VPT - PAGE_SIZE)
 
-#define INTERRUPT_STACK_SIZE	(PAGE_SIZE * 2)
-#define INTERRUPT_STACK_TOP	(VPT)
+// Virtual address of the APIC base
+#define APIC_BASE		(KERNEL_INFO - PAGE_SIZE)
+#define IOAPIC_BASE		(APIC_BASE - PAGE_SIZE)
+
+#define INTERRUPT_STACK_SIZE	(PAGE_SIZE)
+#define INTERRUPT_STACK_TOP	(IOAPIC_BASE)
+
 
 // Physical address of the APIC base
 #define APIC_BASE_PA	0xFEE00000
 // Physical address of the IO APIC base
 #define IOAPIC_BASE_PA	0xFEC00000
 
-// Virtual address of the APIC base
-#define APIC_BASE	(KERNEL_INFO - PAGE_SIZE)
-#define IOAPIC_BASE	(APIC_BASE - PAGE_SIZE)
+#define USER_TOP	0x00000a0000000000	// 10 TB
+#define USER_STACK_TOP	0x000000000a000000
 
 #endif

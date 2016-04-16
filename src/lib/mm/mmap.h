@@ -41,5 +41,6 @@ void page_decref(struct page *p);
 
 uint64_t page2pa(struct page *p);
 struct page *pa2page(uint64_t addr);
+void *page2kva(struct page *p);
 
 #endif

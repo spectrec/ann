@@ -1,5 +1,6 @@
 #include <mm/layout.h>
 #include <interrupt.h>
+#include <gdt.h>
 
 #include "apic.h"
 
@@ -49,11 +50,11 @@ interrupt_handler_no_error_code(interrupt_handler_keyboard, INTERRUPT_VECTOR_KEY
 interrupt_handler_no_error_code(interrupt_handler_syscall, INTERRUPT_VECTOR_SYSCALL)
 
 interrupt_handler_common:
-	subq $0x8, %rsp
-	movw %ds, -6(%rsp)
-	movw %es, -4(%rsp)
-	movw %fs, -2(%rsp)
-	movw %gs, -0(%rsp)
+	pushq $0x0 // reserve space for segment registers
+	movw %ds, 0(%rsp)
+	movw %es, 2(%rsp)
+	movw %fs, 4(%rsp)
+	movw %gs, 6(%rsp)
 
 	pushq %r15
 	pushq %r14
@@ -64,7 +65,6 @@ interrupt_handler_common:
 	pushq %r9
 	pushq %r8
 
-	pushq %rsp
 	pushq %rbp
 	pushq %rsi
 	pushq %rdi
@@ -72,6 +72,12 @@ interrupt_handler_common:
 	pushq %rcx
 	pushq %rbx
 	pushq %rax
+
+	pushq %rax
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	popq %rax
 
 	// Doesn't return
 	call interrupt_handler

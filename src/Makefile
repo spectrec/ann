@@ -53,7 +53,7 @@ dirs:
 	@mkdir -p ${USER_OBJDIR}
 
 # Image specific
-${IMAGE}: dirs $(BOOTLOADER) $(LOADER) $(USER_PROGRAMMS) $(KERNEL)
+${IMAGE}: dirs $(USER_PROGRAMMS) $(BOOTLOADER) $(LOADER) $(KERNEL)
 	dd if=/dev/zero of=${IMAGE} bs=1M count=10
 	dd if=$(BOOTLOADER) of=${IMAGE} conv=notrunc
 	dd if=$(LOADER) of=${IMAGE} seek=1 conv=notrunc
@@ -132,13 +132,16 @@ KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc -Wl,--format=binary -Wl,${USER_PROGRAMMS}
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
 		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o \
 		  ${KERNEL_OBJDIR}/interrupt.o ${KERNEL_OBJDIR}/interrupt_entry.o \
-		  ${KERNEL_OBJDIR}/task.o
+		  ${KERNEL_OBJDIR}/task.o ${KERNEL_OBJDIR}/cpu.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
 	$(GCC_X64) -T ${KERNEL_DIR}/linker.ld -o $@ $^ ${KERNEL_LDFLAGS}
 
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/cpu.o: ${KERNEL_DIR}/cpu.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 ${KERNEL_OBJDIR}/task.o: ${KERNEL_DIR}/task.c
@@ -179,10 +182,13 @@ ${USER_OBJDIR}/%.bin: ${USER_OBJDIR}/%.o ${USER_OBJDIR}/entry.o
 
 # Qemu specific
 qemu-gdb: ${IMAGE}
-	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S -m 32M
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S
 
 qemu: ${IMAGE}
-	$(QEMU) -drive file=$<,index=0,media=disk,format=raw
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -d int,cpu_reset,unimp
+
+qemu-no-reboot: ${IMAGE}
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -no-reboot -no-shutdown -d int,cpu_reset,unimp
 
 clean:
 	rm -rf ${OBJDIR} ${IMAGE}

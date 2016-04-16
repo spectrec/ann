@@ -19,7 +19,10 @@ struct page *page_alloc(void)
 
 	if (p != NULL) {
 		LIST_REMOVE(p, link);
-		assert(p->ref == 0);
+
+		// XXX: set to `NULL' is important. Because kerenel think
+		// that page is free only if it has NULL links
+		memset(p, 0, sizeof(*p));
 	}
 
 	return p;
@@ -77,7 +80,7 @@ pte_t *mmap_lookup(pml4e_t *pml4, uint64_t va, bool create)
 	page4pdp->ref = 1;
 
 	// Insert new pdp into PML4
-	pml4e = pml4[PML4_IDX(va)] = page2pa(page4pdp) | PML4E_P | PML4E_W;
+	pml4e = pml4[PML4_IDX(va)] = page2pa(page4pdp) | PML4E_P | PML4E_W | PML4E_U;
 
 pml4e_found:
 	assert((pml4e & PML4E_P) != 0);
@@ -97,7 +100,7 @@ pml4e_found:
 	page4pd->ref = 1;
 
 	// Insert new page directory into page directory pointer table
-	pdpe = pdp[PDP_IDX(va)] = page2pa(page4pd) | PDPE_P | PDPE_W;
+	pdpe = pdp[PDP_IDX(va)] = page2pa(page4pd) | PDPE_P | PDPE_W | PDPE_U;
 
 pdpe_found:
 	assert((pdpe & PDPE_P) != 0);
@@ -117,7 +120,7 @@ pdpe_found:
 	page4pt->ref = 1;
 
 	// Insert new page table into page directory
-	pde = pd[PD_IDX(va)] = page2pa(page4pt) | PDE_P | PTE_W;
+	pde = pd[PD_IDX(va)] = page2pa(page4pt) | PDE_P | PTE_W | PDE_U;
 
 pde_found:
 	assert((pde & PDE_P) != 0);

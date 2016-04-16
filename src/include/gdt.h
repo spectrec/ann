@@ -28,6 +28,9 @@
 #define IDT_DPL_U (0x3)
 #define IDT_DPL_S (0)
 
+#define GDT_DPL_U (0x3)
+#define GDT_DPL_S (0)
+
 #define TSS_DPL_U (0x3)
 #define TSS_DPL_S (0)
 
@@ -163,6 +166,5 @@ struct descriptor64 {
 
 // TSS descriptors are 128bit long.
 #define GD_TSS	(0x0028)
-#define GD_TSS_MAX 32
 
 #endif // __GDT_H__

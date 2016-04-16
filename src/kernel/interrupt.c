@@ -9,6 +9,7 @@
 #include <console/terminal.h>
 
 #include "pic.h"
+#include "tss.h"
 #include "apic.h"
 #include "task.h"
 #include "kernel.h"
@@ -41,7 +42,7 @@ void interrupt_handler_syscall();
 
 static struct descriptor64 idt[256];
 
-static struct tss tss[GD_TSS_MAX]
+static struct tss tss[CPU_MAX_CNT]
 	__attribute__((aligned(PAGE_SIZE)));
 
 #define IOAPIC_SELECT(reg) {						\
@@ -75,10 +76,24 @@ static struct tss tss[GD_TSS_MAX]
 	*(uint32_t *)(APIC_BASE + reg_off) = val;	\
 }
 
+#define PAGE_FAULT_ERROR_CODE_P		(1 << 0)
+#define PAGE_FAULT_ERROR_CODE_R_W	(1 << 1)
+#define PAGE_FAULT_ERROR_CODE_U_S	(1 << 2)
+#define PAGE_FAULT_ERROR_CODE_RSV	(1 << 3)
+#define PAGE_FAULT_ERROR_CODE_I_D	(1 << 4)
 void page_fault_handler(struct task_context ctx)
 {
+	terminal_printf("Page fault at `%lx', opration: %s, accessed by: %s\n", rcr2(),
+			(ctx.error_code & PAGE_FAULT_ERROR_CODE_R_W) != 0 ? "write" : "read",
+			(ctx.error_code & PAGE_FAULT_ERROR_CODE_U_S) != 0 ? "user" : "supervisor");
+	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_P) == 0)
+		terminal_printf("\tpage is not present\n");
+	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_RSV) != 0)
+		terminal_printf("\tcheck reserved fields inside page tables\n");
+	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_I_D) != 0)
+		terminal_printf("\tfault was because of instruction fetch\n");
+
 	while (1);
-	(void)ctx;
 }
 
 void interrupt_handler(struct task_context ctx)
@@ -92,13 +107,13 @@ void interrupt_handler(struct task_context ctx)
 			(uint32_t)ctx.interrupt_number);
 	terminal_printf("Task dump:\n"
 			"\trax: %lx, rbx: %lx, rcx: %lx, rdx: %lx\n"
-			"\trdi: %lx, rsi: %lx, rbp: %lx, rsp: %lx\n"
+			"\trdi: %lx, rsi: %lx, rsp: %lx\n"
 			"\tr8:  %lx, r9:  %lx, r10: %lx, r11: %lx\n"
 			"\tr12: %lx, r13: %lx, r14: %lx, r15: %lx\n"
 			"\tcs: %x, ss: %x, ds: %x, es: %x, fs: %x, gs: %x\n"
-			"\trip: %lx, rfalgs: %lb\n", ctx.gprs.rax, ctx.gprs.rbp,
+			"\trip: %lx, rfalgs: %lb\n", ctx.gprs.rax, ctx.gprs.rbx,
 			ctx.gprs.rcx, ctx.gprs.rdx, ctx.gprs.rdi, ctx.gprs.rsi,
-			ctx.gprs.rbp, ctx.gprs.rsp, ctx.gprs.r8, ctx.gprs.r9,
+			ctx.rsp, ctx.gprs.r8, ctx.gprs.r9,
 			ctx.gprs.r10, ctx.gprs.r11, ctx.gprs.r12, ctx.gprs.r13,
 			ctx.gprs.r14, ctx.gprs.r15, (uint32_t)ctx.cs, (uint32_t)ctx.ss,
 			(uint32_t)ctx.ds, (uint32_t)ctx.es, (uint32_t)ctx.fs, (uint32_t)ctx.gs,
@@ -183,14 +198,14 @@ void interrupt_init(void)
 		uint16_t limit;
 		void *base;
 	} __attribute__((packed)) idtr = {
-		sizeof(idt), idt
+		sizeof(idt)-1, idt
 	};
 
 	// setup interrupt handlers
 	idt[INTERRUPT_VECTOR_DIV_BY_ZERO] = TRAP_GATE(GD_KT, interrupt_handler_div_by_zero, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_DEBUG] = TRAP_GATE(GD_KT, interrupt_handler_debug, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_NMI] = TRAP_GATE(GD_KT, interrupt_handler_nmi, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_BREAKPOINT] = TRAP_GATE(GD_KT, interrupt_handler_breakpoint, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_BREAKPOINT] = TRAP_GATE(GD_KT, interrupt_handler_breakpoint, 0, IDT_DPL_U);
 	idt[INTERRUPT_VECTOR_OVERFLOW] = TRAP_GATE(GD_KT, interrupt_handler_overflow, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_BOUND_RANGE] = TRAP_GATE(GD_KT, interrupt_handler_bound_range, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_IVALID_OPCODE] = TRAP_GATE(GD_KT, interrupt_handler_ivalid_opcode, 0, IDT_DPL_S);
@@ -218,9 +233,9 @@ void interrupt_init(void)
 	asm volatile("lidt %0" :: "m" (idtr));
 
 	// Initialize tss
-	for (uint32_t idx = (GD_TSS >> 3), j = 0; j < GD_TSS_MAX; idx += 2, j++) {
+	for (uint32_t idx = (GD_TSS >> 3), j = 0; j < CPU_MAX_CNT; idx += 2, j++) {
 		struct descriptor64 *gdt64_entry = (struct descriptor64 *)&gdt[idx];
-		*gdt64_entry = SEGMENT_TSS(&tss[j], sizeof(tss[j])-1, TYPE_AVAILABLE_TSS, TSS_DPL_S);
+		*gdt64_entry = SEGMENT_TSS(&tss[j], sizeof(tss[j]), TYPE_AVAILABLE_TSS, TSS_DPL_S);
 	}
 
 	// Prepare stack for interrupts
@@ -230,7 +245,7 @@ void interrupt_init(void)
 
 		if ((page = page_alloc()) == NULL)
 			panic("not enough memory for interrup handler stack");
-		if (page_insert(config->pml4.ptr, page, INTERRUPT_STACK_TOP, PTE_W) != 0)
+		if (page_insert(config->pml4.ptr, page, addr, PTE_W) != 0)
 			panic("can't map stack for interrupt handler");
 	}
 
@@ -256,5 +271,6 @@ void interrupt_init(void)
 	//APIC_WRITE(APIC_OFFSET_ICR, 2083333);
 	//APIC_WRITE(APIC_OFFSET_SVR, 0xff | APIC_SVR_ENABLE);
 
+	asm volatile("int3");
 	asm volatile("sti");
 }

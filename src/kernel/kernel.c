@@ -5,6 +5,7 @@
 #include <mm/layout.h>
 #include <console/terminal.h>
 
+#include "task.h"
 #include "kernel.h"
 #include "interrupt.h"
 
@@ -62,23 +63,33 @@ void kernel_init_mmap(void)
 	pages32 = (struct page32 *)config->pages.ptr;
 	state.pml4[0] = 0; // remove unneeded mappings
 
-	// First of all - convert `page32' into 64-bit `page'
+	// First of all - convert `page32' into 64-bit `page'.
+	// And rebuild free list
+	uint32_t used_pages = 0;
 	for (int64_t i = state.pages_cnt-1; i >= 0; i--) {
 		struct page *p = &state.pages[i];
+		uint64_t links = pages32[i].links;
+		uint32_t rc = pages32[i].ref;
 
 		memset(p, 0, sizeof(*p));
-		p->ref = pages32[i].ref;
-	}
+		p->ref = rc;
 
-	// Rebuild free list
-	for (uint32_t i = 0; i < state.pages_cnt; i++) {
-		if (state.pages[i].ref != 0) {
-			assert(state.pages[i].ref == 1);
+		if (links == 0) {
+			// Page in not inside free list
+			assert(p->ref == 1);
+			used_pages++;
+
 			continue;
 		}
 
-		LIST_INSERT_HEAD(&state.free, &state.pages[i], link);
+		// Pages inside free list may has ref counter > 0, this means
+		// that page is used, but reuse is allowed.
+		LIST_INSERT_HEAD(&state.free, p, link);
+		assert(p->ref <= 1);
 	}
+
+	terminal_printf("Pages stat: used: `%u', free: `%u'\n",
+			used_pages, state.pages_cnt - used_pages);
 }
 
 void kernel_main(void)
@@ -96,7 +107,10 @@ void kernel_main(void)
 	// Enable interrupts and exceptions
 	interrupt_init();
 
-	asm volatile("int3");
+	// Initialize tasks free list
+	task_init();
 
-	panic("Nothing to do");
+	TASK_STATIC_INITIALIZER(hello);
+
+	schedule();
 }
