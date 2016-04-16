@@ -30,31 +30,4 @@
 
 #define INTERRUPT_VECTOR_SYSCALL		34
 
-#ifndef __ASSEMBLER__
-static const char *interrupt_name[256] = {
-	[INTERRUPT_VECTOR_DIV_BY_ZERO] = "divide by zero",
-	[INTERRUPT_VECTOR_DEBUG] = "debug",
-	[INTERRUPT_VECTOR_NMI] = "nmi",
-	[INTERRUPT_VECTOR_BREAKPOINT] = "breakpoint",
-	[INTERRUPT_VECTOR_OVERFLOW] = "overflow",
-	[INTERRUPT_VECTOR_BOUND_RANGE] = "bound range",
-	[INTERRUPT_VECTOR_IVALID_OPCODE] = "invalid opcode",
-	[INTERRUPT_VECTOR_DEVICE_NOT_AVAILABLE] = "device not available",
-	[INTERRUPT_VECTOR_DOUBLE_FAULT] = "double fault",
-	[INTERRUPT_VECTOR_INVALID_TSS] = "invalid tss",
-	[INTERRUPT_VECTOR_SEGMENT_NOT_PRESENT] = "segment not present",
-	[INTERRUPT_VECTOR_STACK] = "stack",
-	[INTERRUPT_VECTOR_GENERAL_PROTECTION] = "general protection",
-	[INTERRUPT_VECTOR_PAGE_FAULT] = "page fault",
-	[INTERRUPT_VECTOR_X86_FP_INSTRUCTION] = "x86 floating point instruction",
-	[INTERRUPT_VECTOR_ALIGNMENT_CHECK] = "alignment check",
-	[INTERRUPT_VECTOR_MACHINE_CHECK] = "machine check",
-	[INTERRUPT_VECTOR_SIMD_FP] = "simd floating point",
-	[INTERRUPT_VECTOR_SECURITY_EXCEPTION] = "security exception",
-	[INTERRUPT_VECTOR_TIMER] = "timer",
-	[INTERRUPT_VECTOR_KEYBOARD] = "keyboard",
-	[INTERRUPT_VECTOR_SYSCALL] = "syscall",
-};
-#endif // !__ASSEMBLER__
-
 #endif

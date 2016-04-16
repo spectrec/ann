@@ -1,4 +1,6 @@
+#include "sys.h"
+
 void main(void)
 {
-	asm volatile ("int3");
+	sys_puts("Hello world\n");
 }

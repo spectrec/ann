@@ -126,19 +126,22 @@ ${LOADER_OBJDIR}/terminal.o: ${LIB_DIR}/console/terminal.c
 
 # Kernel specific
 KERNEL_CFLAGS := ${CFLAGS} -O0 -DVADDR_BASE=${KERNEL_BASE} -mcmodel=large \
-		 -mno-red-zone -mno-mmx -mno-sse -mno-sse2
+		 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -I.
 KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc -Wl,--format=binary -Wl,${USER_PROGRAMMS} -Wl,--format=default
 
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
 		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o \
 		  ${KERNEL_OBJDIR}/interrupt.o ${KERNEL_OBJDIR}/interrupt_entry.o \
-		  ${KERNEL_OBJDIR}/task.o ${KERNEL_OBJDIR}/cpu.o
+		  ${KERNEL_OBJDIR}/task.o ${KERNEL_OBJDIR}/cpu.o ${KERNEL_OBJDIR}/syscall.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
 	$(GCC_X64) -T ${KERNEL_DIR}/linker.ld -o $@ $^ ${KERNEL_LDFLAGS}
 
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/syscall.o: ${KERNEL_DIR}/syscall.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 ${KERNEL_OBJDIR}/cpu.o: ${KERNEL_DIR}/cpu.c
@@ -174,7 +177,7 @@ USER_DEPS := $(patsubst %.bin,%.d,${USER_PROGRAMMS})
 ${USER_OBJDIR}/%.o: ${USER_DIR}/%.c
 	$(GCC_X64) -c -o $@ $< ${USER_CFLAGS}
 
-${USER_OBJDIR}/%.bin: ${USER_OBJDIR}/%.o ${USER_OBJDIR}/entry.o
+${USER_OBJDIR}/%.bin: ${USER_OBJDIR}/%.o ${USER_OBJDIR}/entry.o ${USER_OBJDIR}/syscall.o
 	$(GCC_X64) -T ${USER_DIR}/linker.ld -o $@ $^ ${USER_LDFLAGS}
 
 -include ${USER_DEPS}
