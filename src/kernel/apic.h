@@ -1,6 +1,11 @@
 #ifndef __APIC_H__
 #define __APIC_H__
 
+#ifndef __ASSEMBLER__
+# include <stdint.h>
+#endif
+#include <mm/layout.h>
+
 #define MSR_APIC_BASE	0x1b
 
 // bootstrap processor
@@ -68,5 +73,13 @@
 
 // End of interrupt
 #define APIC_OFFSET_EOI		0x000000b0
+
+#define APIC_READ(reg_off) ({				\
+	*(uint32_t *)(APIC_BASE + reg_off);		\
+})
+
+#define APIC_WRITE(reg_off, val) {			\
+	*(uint32_t *)(APIC_BASE + reg_off) = val;	\
+}
 
 #endif

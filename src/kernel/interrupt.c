@@ -15,7 +15,9 @@
 #include "kernel.h"
 #include "ioapic.h"
 #include "interrupt.h"
+#include "kernel/timer.h"
 #include "kernel/syscall.h"
+#include "kernel/keyboard.h"
 
 // interrupt handler entry points
 void interrupt_handler_div_by_zero();
@@ -71,37 +73,6 @@ static const char *interrupt_name[256] = {
 	[INTERRUPT_VECTOR_SYSCALL] = "syscall",
 };
 
-#define IOAPIC_SELECT(reg) {						\
-	uint32_t *__sel_addr = (uint32_t *)(IOAPIC_BASE + IOREGSEL);	\
-	*__sel_addr = (uint32_t)reg;					\
-}
-
-#define IOAPIC_WRITE(reg, val) {			\
-	uint32_t *__reg_addr;				\
-							\
-	IOAPIC_SELECT(reg);				\
-							\
-	__reg_addr = (uint32_t *)(IOAPIC_BASE + IOWIN);	\
-	*__reg_addr = (uint32_t)val;			\
-}
-
-#define IOAPIC_READ(reg) ({				\
-	uint32_t *__reg_addr;				\
-							\
-	IOAPIC_SELECT(reg);				\
-							\
-	__reg_addr = (uint32_t *)(IOAPIC_BASE + IOWIN);	\
-	*__reg_addr;					\
-})
-
-#define APIC_READ(reg_off) ({				\
-	*(uint32_t *)(APIC_BASE + reg_off);		\
-})
-
-#define APIC_WRITE(reg_off, val) {			\
-	*(uint32_t *)(APIC_BASE + reg_off) = val;	\
-}
-
 #define PAGE_FAULT_ERROR_CODE_P		(1 << 0)
 #define PAGE_FAULT_ERROR_CODE_R_W	(1 << 1)
 #define PAGE_FAULT_ERROR_CODE_U_S	(1 << 2)
@@ -128,25 +99,9 @@ void interrupt_handler(struct task_context ctx)
 		.context = ctx
 	};
 
-	terminal_printf("\ninterrupt: %s (%u)\n",
-			interrupt_name[ctx.interrupt_number],
-			(uint32_t)ctx.interrupt_number);
-	terminal_printf("Task dump:\n"
-			"\trax: %lx, rbx: %lx, rcx: %lx, rdx: %lx\n"
-			"\trdi: %lx, rsi: %lx, rsp: %lx\n"
-			"\tr8:  %lx, r9:  %lx, r10: %lx, r11: %lx\n"
-			"\tr12: %lx, r13: %lx, r14: %lx, r15: %lx\n"
-			"\tcs: %x, ss: %x, ds: %x, es: %x, fs: %x, gs: %x\n"
-			"\trip: %lx, rfalgs: %lb\n", ctx.gprs.rax, ctx.gprs.rbx,
-			ctx.gprs.rcx, ctx.gprs.rdx, ctx.gprs.rdi, ctx.gprs.rsi,
-			ctx.rsp, ctx.gprs.r8, ctx.gprs.r9,
-			ctx.gprs.r10, ctx.gprs.r11, ctx.gprs.r12, ctx.gprs.r13,
-			ctx.gprs.r14, ctx.gprs.r15, (uint32_t)ctx.cs, (uint32_t)ctx.ss,
-			(uint32_t)ctx.ds, (uint32_t)ctx.es, (uint32_t)ctx.fs, (uint32_t)ctx.gs,
-			ctx.rip, ctx.rflags);
-
 	switch (ctx.interrupt_number) {
 	case INTERRUPT_VECTOR_BREAKPOINT:
+		terminal_printf("breakpoint\n");
 		return task_run(&task);
 	case INTERRUPT_VECTOR_PAGE_FAULT:
 		return page_fault_handler(ctx);
@@ -171,11 +126,29 @@ void interrupt_handler(struct task_context ctx)
 	case INTERRUPT_VECTOR_SYSCALL:
 		return syscall(&task);
 	case INTERRUPT_VECTOR_TIMER:
+		return timer_handler(&task);
 	case INTERRUPT_VECTOR_KEYBOARD:
-		APIC_WRITE(APIC_OFFSET_EOI, 0); // send EOI
-		break;
+		return keyboard_handler(&task);
 	}
 
+	terminal_printf("\nunhandled interrupt: %s (%u)\n",
+			interrupt_name[ctx.interrupt_number],
+			(uint32_t)ctx.interrupt_number);
+	terminal_printf("Task dump:\n"
+			"\trax: %lx, rbx: %lx, rcx: %lx, rdx: %lx\n"
+			"\trdi: %lx, rsi: %lx, rsp: %lx\n"
+			"\tr8:  %lx, r9:  %lx, r10: %lx, r11: %lx\n"
+			"\tr12: %lx, r13: %lx, r14: %lx, r15: %lx\n"
+			"\tcs: %x, ss: %x, ds: %x, es: %x, fs: %x, gs: %x\n"
+			"\trip: %lx, rfalgs: %lb\n", ctx.gprs.rax, ctx.gprs.rbx,
+			ctx.gprs.rcx, ctx.gprs.rdx, ctx.gprs.rdi, ctx.gprs.rsi,
+			ctx.rsp, ctx.gprs.r8, ctx.gprs.r9,
+			ctx.gprs.r10, ctx.gprs.r11, ctx.gprs.r12, ctx.gprs.r13,
+			ctx.gprs.r14, ctx.gprs.r15, (uint32_t)ctx.cs, (uint32_t)ctx.ss,
+			(uint32_t)ctx.ds, (uint32_t)ctx.es, (uint32_t)ctx.fs, (uint32_t)ctx.gs,
+			ctx.rip, ctx.rflags);
+
+	// TODO: destroy task and call scheduler
 	panic("hang up\n");
 }
 
@@ -290,14 +263,13 @@ void interrupt_init(void)
 	apic_enable();
 
 	if (ioapic_init() != 0)
-		panic("ioapic_init failed\n");
+		panic("ioapic_init failed");
 
-	// TODO: initialize timer
-	//APIC_WRITE(APIC_OFFSET_LVT_TIMER, (1ul << 17) | 0x20);
-	//APIC_WRITE(APIC_OFFSET_DCR, 0b1001);
-	//APIC_WRITE(APIC_OFFSET_ICR, 2083333);
-	//APIC_WRITE(APIC_OFFSET_SVR, 0xff | APIC_SVR_ENABLE);
+	if (keyboard_init() != 0)
+		panic("keyboard_init failed");
+
+	if (timer_init() != 0)
+		panic("timer_init failed");
 
 	asm volatile("int3");
-	asm volatile("sti");
 }

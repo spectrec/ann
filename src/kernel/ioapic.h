@@ -1,6 +1,8 @@
 #ifndef __IO_APIC_H__
 #define __IO_APIC_H__
 
+#include <stdint.h>
+
 // This register selects the IOAPIC Register to be read/written. The data is
 // then read from or written to the selected register through the IOWIN Register.
 #define IOREGSEL	0x00000000	// r/w
@@ -33,5 +35,28 @@
 #define IOREDTBL_BASE	0x00000010	// r/w
 
 // TODO: struct for ioredtbl
+
+#define IOAPIC_SELECT(reg) {						\
+	uint32_t *__sel_addr = (uint32_t *)(IOAPIC_BASE + IOREGSEL);	\
+	*__sel_addr = (uint32_t)reg;					\
+}
+
+#define IOAPIC_WRITE(reg, val) {			\
+	uint32_t *__reg_addr;				\
+							\
+	IOAPIC_SELECT(reg);				\
+							\
+	__reg_addr = (uint32_t *)(IOAPIC_BASE + IOWIN);	\
+	*__reg_addr = (uint32_t)val;			\
+}
+
+#define IOAPIC_READ(reg) ({				\
+	uint32_t *__reg_addr;				\
+							\
+	IOAPIC_SELECT(reg);				\
+							\
+	__reg_addr = (uint32_t *)(IOAPIC_BASE + IOWIN);	\
+	*__reg_addr;					\
+})
 
 #endif

@@ -132,13 +132,20 @@ KERNEL_LDFLAGS := ${LDFLAGS} -O0 -lgcc -Wl,--format=binary -Wl,${USER_PROGRAMMS}
 KERNEL_OBJECTS := ${KERNEL_OBJDIR}/kernel.o ${KERNEL_OBJDIR}/terminal.o \
 		  ${KERNEL_OBJDIR}/string.o ${KERNEL_OBJDIR}/mmap.o \
 		  ${KERNEL_OBJDIR}/interrupt.o ${KERNEL_OBJDIR}/interrupt_entry.o \
-		  ${KERNEL_OBJDIR}/task.o ${KERNEL_OBJDIR}/cpu.o ${KERNEL_OBJDIR}/syscall.o
+		  ${KERNEL_OBJDIR}/task.o ${KERNEL_OBJDIR}/cpu.o ${KERNEL_OBJDIR}/syscall.o \
+		  ${KERNEL_OBJDIR}/keyboard.o ${KERNEL_OBJDIR}/timer.o
 KERNEL_DEPS := $(patsubst %.o,%.d,${KERNEL_OBJECTS})
 
 $(KERNEL): ${KERNEL_OBJECTS}
 	$(GCC_X64) -T ${KERNEL_DIR}/linker.ld -o $@ $^ ${KERNEL_LDFLAGS}
 
 ${KERNEL_OBJDIR}/kernel.o: ${KERNEL_DIR}/kernel.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/timer.o: ${KERNEL_DIR}/timer.c
+	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
+
+${KERNEL_OBJDIR}/keyboard.o: ${KERNEL_DIR}/keyboard.c
 	$(GCC_X64) -c -o $@ $< ${KERNEL_CFLAGS}
 
 ${KERNEL_OBJDIR}/syscall.o: ${KERNEL_DIR}/syscall.c

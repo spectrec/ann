@@ -79,7 +79,7 @@ struct task *task_new(void);
 void task_destroy(struct task *task);
 int task_create(const char *name, uint8_t *binary, size_t size);
 
-void task_run(const struct task *task);
+void task_run(struct task *task);
 void schedule(void);
 
 #define TASK_MAX_CNT	1024

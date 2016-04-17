@@ -45,9 +45,9 @@ static int8_t disk_io_wait_ready(bool is_write)
 }
 
 // lba - logical block address of the first sector to read
-static int8_t disk_io_read(void *dst, uint32_t lba, uint8_t count)
+static int8_t disk_io_read(uint16_t *dst, uint32_t lba, uint32_t count)
 {
-	uint8_t dword_count;
+	uint16_t word_count;
 
 	if (disk_io_wait_ready(false) != 0)
 		return -1;
@@ -62,8 +62,9 @@ static int8_t disk_io_read(void *dst, uint32_t lba, uint8_t count)
 	if (disk_io_wait_ready(false) != 0)
 		return -1;
 
-	dword_count = count * ATA_SECTOR_SIZE / sizeof(uint32_t);
-	insl(ATA_PIO_PORT_DATA, dst, dword_count);
+	word_count = count * ATA_SECTOR_SIZE / sizeof(uint16_t);
+	for (uint32_t i = 0; i < word_count; i++)
+		dst[i] = inw(ATA_PIO_PORT_DATA);
 
 	return 0;
 }

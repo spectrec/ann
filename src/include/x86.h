@@ -27,18 +27,17 @@
 #define RFLAGS_ID	(1 << 21) // ID flag
 // reserved		(1 << 22..63)
 
-static inline void insl(int port, void *addr, int cnt)
-{
-	__asm__ volatile("cld\n\trepne\n\tinsl"			:
-			 "=D" (addr), "=c" (cnt)		:
-			 "d" (port), "0" (addr), "1" (cnt)	:
-			 "memory", "cc");
-}
-
 static inline uint8_t inb(int port)
 {
 	uint8_t data;
 	__asm__ volatile("inb %w1,%0" : "=a" (data) : "d" (port));
+	return data;
+}
+
+static inline uint16_t inw(int port)
+{
+	uint16_t data;
+	__asm__ volatile("inw %w1,%0" : "=a" (data) : "d" (port));
 	return data;
 }
 
@@ -84,6 +83,13 @@ static inline uintptr_t rcr3(void)
 {
 	uintptr_t val;
 	__asm__ volatile("movq %%cr3, %0" : "=r" (val));
+	return val;
+}
+
+static inline uintptr_t rrsp(void)
+{
+	uintptr_t val;
+	__asm__ volatile("movq %%rsp, %0" : "=r" (val));
 	return val;
 }
 

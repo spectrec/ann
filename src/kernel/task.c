@@ -153,7 +153,6 @@ int task_create(const char *name, uint8_t *binary, size_t size)
 	task->context.es = GD_UD | GDT_DPL_U;
 	task->context.ss = GD_UD | GDT_DPL_U;
 	task->context.rsp = USER_STACK_TOP;
-	task->context.rflags = RFLAGS_IF;
 
 	task->state = TASK_STATE_READY;
 
@@ -164,9 +163,11 @@ cleanup:
 	return -1;
 }
 
-// XXX: don't try restore `rbp', this will break your stack
-void task_run(const struct task *task)
+void task_run(struct task *task)
 {
+	// Always enable interrupts
+	task->context.rflags |= RFLAGS_IF;
+
 	asm volatile(
 		"movq %0, %%rsp\n\t"
 
