@@ -2,19 +2,26 @@
 #include "kernel/task.h"
 #include "kernel/timer.h"
 
+#include <interrupt.h>
+#include <console/terminal.h>
+
+#define TIMER_INITIAL_COUNT	60000000
+#define TIMER_PERIODIC		(1 << 17)
+
 int timer_init(void)
 {
-	// TODO: initialize timer
-	//APIC_WRITE(APIC_OFFSET_LVT_TIMER, (1ul << 17) | 0x20);
-	//APIC_WRITE(APIC_OFFSET_DCR, 0b1001);
-	//APIC_WRITE(APIC_OFFSET_ICR, 2083333);
-	//APIC_WRITE(APIC_OFFSET_SVR, 0xff | APIC_SVR_ENABLE);
+	APIC_WRITE(APIC_OFFSET_ICR, TIMER_INITIAL_COUNT);
+	APIC_WRITE(APIC_OFFSET_DCR, APIC_DCR_NODIV);
+	APIC_WRITE(APIC_OFFSET_LVT_TIMER, TIMER_PERIODIC | INTERRUPT_VECTOR_TIMER);
 
 	return 0;
 }
 
 void timer_handler(struct task *task)
 {
+	//static int count = 0;
+
+	//terminal_printf("timer: %u\n", count++);
 	APIC_WRITE(APIC_OFFSET_EOI, 0); // send EOI
 
 	task_run(task);

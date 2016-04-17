@@ -50,15 +50,16 @@
 // APIC detects an internal error
 #define APIC_OFFSET_LVT_ERROR	0x00000370
 
+#define APIC_DCR_DIV2		0b0000
+#define APIC_DCR_DIV4		0b0001
+#define APIC_DCR_DIV8		0b0010
+#define APIC_DCR_DIV16		0b0011
+#define APIC_DCR_DIV32		0b1000
+#define APIC_DCR_DIV64		0b1001
+#define APIC_DCR_DIV128		0b1010
+#define APIC_DCR_NODIV		0b1011
+
 // Divide Configuration Register, possible values:
-// 0000 - div by 2
-// 0001 - div by 4
-// 0010 - div by 8
-// 0011 - div by 16
-// 1000 - div by 32
-// 1001 - div by 64
-// 1010 - div by 128
-// 1011 - div by 1
 #define APIC_OFFSET_DCR		0x000003e0
 
 // Initial Count Register
