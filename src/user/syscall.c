@@ -1,5 +1,6 @@
 #include <stdint.h>
-#include <syscall.h>
+
+#include "stdlib/syscall.h"
 
 static int64_t syscall(enum syscall syscall, uint64_t arg1, uint64_t arg2,
 		       uint64_t arg3, uint64_t arg4, uint64_t arg5)
@@ -20,7 +21,7 @@ static int64_t syscall(enum syscall syscall, uint64_t arg1, uint64_t arg2,
 	return ret;
 }
 
-int64_t sys_puts(const char *string)
+void sys_puts(const char *string)
 {
-	return syscall(SYSCALL_PUTS, (uintptr_t)string, 0, 0, 0, 0);
+	return (void)syscall(SYSCALL_PUTS, (uintptr_t)string, 0, 0, 0, 0);
 }

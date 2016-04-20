@@ -1,6 +1,5 @@
-#include <assert.h>
-
-#include "cpu.h"
+#include "kernel/cpu.h"
+#include "stdlib/assert.h"
 
 static struct cpu_map cpu_map[CPU_MAX_CNT];
 static struct cpu_context cpu_context[CPU_MAX_CNT];

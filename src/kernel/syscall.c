@@ -1,9 +1,10 @@
-#include "task.h"
-#include "kernel/kernel.h"
+#include "kernel/task.h"
 #include "kernel/syscall.h"
 
-#include <syscall.h>
-#include <console/terminal.h>
+#include "stdlib/assert.h"
+#include "stdlib/syscall.h"
+
+#include "kernel/lib/console/terminal.h"
 
 void syscall(struct task *task)
 {

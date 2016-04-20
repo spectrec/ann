@@ -1,0 +1,28 @@
+BOOTLOADER_DIR = ${KERNEL_DIR}/boot
+
+BOOTLOADER_CFLAGS = ${CFLAGS} -Os ${X86_CFLAGS}
+BOOTLOADER_LDFLAGS = ${LDFLAGS} ${X86_LDFLAGS} \
+		     -Wl,--entry=boot_entry -Wl,-Ttext -Wl,0x7c00
+
+bootloader_objects = ${BOOTLOADER_DIR}/boot.o \
+		     ${BOOTLOADER_DIR}/main.o \
+		     ${BOOTLOADER_DIR}/ata.o
+bootloader_deps = $(patsubst %.o, %.d, ${bootloader_objects})
+
+$(BOOTLOADER): ${bootloader_objects}
+	$(CC) -o $@ ${BOOTLOADER_LDFLAGS} $^
+	$(OBJCOPY) --only-keep-debug $@ $@.debug
+	$(OBJCOPY) -S -O binary -j .text $@ $@.strip
+	$(PERL) ${BOOTLOADER_DIR}/sign.pl $@.strip
+	mv $@.strip $@
+
+${BOOTLOADER_DIR}/ata.o: ${KERNEL_DIR}/lib/disk/ata.c
+	$(CC) -c -o $@ $< ${BOOTLOADER_CFLAGS}
+
+${BOOTLOADER_DIR}/%.o: ${BOOTLOADER_DIR}/%.c
+	$(CC) -c -o $@ $< ${BOOTLOADER_CFLAGS}
+
+${BOOTLOADER_DIR}/%.o: ${BOOTLOADER_DIR}/%.S
+	$(CC) -c -o $@ $< ${BOOTLOADER_CFLAGS}
+
+-include ${bootloader_deps}

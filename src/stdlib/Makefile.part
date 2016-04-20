@@ -1,0 +1,16 @@
+stdlib_sources = string.c
+
+STDLIB_BUILDDIR := ${STDLIB_DIR}/${STDLIB_ARCH}
+stdlib_objects := $(patsubst %.c, ${STDLIB_BUILDDIR}/%.o, ${stdlib_sources})
+stdlib_deps := $(patsubst %.o, %.d, ${stdlib_objects})
+
+${STDLIB_BUILDDIR}/${STDLIB_NAME}: STDLIB_CFLAGS := ${STDLIB_CFLAGS}
+${STDLIB_BUILDDIR}/${STDLIB_NAME}: ${stdlib_objects}
+	$(AR) cru $@ $^
+	$(RANLIB) $@
+
+${STDLIB_BUILDDIR}/%.o: ${STDLIB_DIR}/%.c
+	@mkdir -p $(@D)
+	$(CC) -c -o $@ $^ ${STDLIB_CFLAGS}
+
+-include ${stdlib_deps}

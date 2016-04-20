@@ -1,13 +1,14 @@
-#include <x86.h>
-#include <string.h>
-#include <config.h>
-#include <mm/mmap.h>
-#include <mm/layout.h>
-#include <console/terminal.h>
+#include "stdlib/string.h"
+#include "stdlib/assert.h"
 
-#include "task.h"
-#include "kernel.h"
-#include "interrupt.h"
+#include "kernel/lib/memory/map.h"
+#include "kernel/lib/memory/layout.h"
+#include "kernel/lib/console/terminal.h"
+
+#include "kernel/asm.h"
+#include "kernel/task.h"
+#include "kernel/loader/config.h"
+#include "kernel/interrupt/interrupt.h"
 
 void kernel_panic(const char *fmt, ...);
 panic_t panic = kernel_panic;

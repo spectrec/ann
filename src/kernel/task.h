@@ -1,10 +1,11 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#include <mmu.h>
-#include <queue.h>
 #include <stdint.h>
 #include <stddef.h>
+
+#include "stdlib/queue.h"
+#include "kernel/lib/memory/mmu.h"
 
 struct gprs {
 	uint64_t rax;
@@ -85,11 +86,11 @@ void schedule(void);
 #define TASK_MAX_CNT	1024
 
 #define TASK_STATIC_INITIALIZER(name_) {				\
-	extern uint8_t _binary_obj_user_## name_ ##_bin_start[];	\
-	extern uint8_t _binary_obj_user_## name_ ##_bin_end[];		\
+	extern uint8_t _binary_user_## name_ ##_bin_start[];		\
+	extern uint8_t _binary_user_## name_ ##_bin_end[];		\
 									\
-	uint8_t *binary_ = _binary_obj_user_## name_ ##_bin_start;	\
-	uint8_t *end_ = _binary_obj_user_## name_ ##_bin_end;		\
+	uint8_t *binary_ = _binary_user_## name_ ##_bin_start;	\
+	uint8_t *end_ = _binary_user_## name_ ##_bin_end;		\
 									\
 	task_create(#name_, binary_, end_ - binary_);			\
 }

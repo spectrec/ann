@@ -13,8 +13,8 @@ end
 define debug-loader
 	set architecture i8086
 
-	add-symbol-file obj/boot/bootloader.debug 0x7c00
-	add-symbol-file obj/loader/loader 0x100000
+	add-symbol-file kernel/boot/bootloader.debug 0x7c00
+	add-symbol-file kernel/loader/loader 0x100000
 
 	layout src
 end
@@ -26,7 +26,7 @@ end
 define debug-kernel
 	set architecture i386:x86-64
 
-	add-symbol-file obj/kernel/kernel 0xFFFFFFF800200000
+	add-symbol-file kernel/kernel 0xFFFFFFF800200000
 
 	layout src
 end

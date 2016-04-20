@@ -1,15 +1,17 @@
-#include <elf.h>
-#include <x86.h>
-#include <gdt.h>
-#include <util.h>
-#include <string.h>
-#include <config.h>
-#include <mm/mmap.h>
-#include <mm/layout.h>
-#include <console/terminal.h>
+#include "stdlib/assert.h"
+#include "stdlib/string.h"
 
-#include "task.h"
-#include "kernel.h"
+#include "kernel/lib/memory/map.h"
+#include "kernel/lib/memory/layout.h"
+#include "kernel/lib/console/terminal.h"
+
+#include "kernel/asm.h"
+#include "kernel/task.h"
+#include "kernel/misc/elf.h"
+#include "kernel/misc/gdt.h"
+#include "kernel/misc/util.h"
+#include "kernel/loader/config.h"
+
 
 static LIST_HEAD(task_free, task) free_tasks = LIST_HEAD_INITIALIZER(task_free);
 static struct task tasks[TASK_MAX_CNT];
