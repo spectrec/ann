@@ -31,7 +31,7 @@
 // Physical address of the IO APIC base
 #define IOAPIC_BASE_PA	0xFEC00000
 
-#define USER_TOP	0x00000a0000000000	// 10 TB
+#define USER_TOP	0x0000010000000000	// 1 TB
 #define USER_STACK_TOP	0x000000000a000000
 
 #endif

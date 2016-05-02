@@ -8,7 +8,7 @@
 #define TERMINAL_COL_COUNT	80
 
 #define TERMINAL_ROW_SIZE (TERMINAL_COL_COUNT * sizeof(uint16_t))
-#define TERMINAL_ROW(i_) (&terminal_buffer[(i_) * TERMINAL_ROW_SIZE])
+#define TERMINAL_ROW(i_) (&terminal_buffer[(i_) * TERMINAL_COL_COUNT])
 
 static uint16_t *terminal_buffer;
 static uint8_t terminal_color;

@@ -1,9 +1,17 @@
 # Object files
 obj/
 
+*.o
+*.d
+
 # Executables
 *.out
 *.bin
+
+bootloader
+loader
+kernel
+stdlib
 
 # Debug files
 *.debug
