@@ -89,6 +89,10 @@ void kernel_init_mmap(void)
 		assert(p->ref <= 1);
 	}
 
+	// Recursively insert PML4 into itself as a page table.
+	// This allows access to all page table hierarchy, using virtual addresses.
+	state.pml4[PML4_IDX(VPT)] = PADDR(state.pml4) | PML4E_W | PML4E_P;
+
 	terminal_printf("Pages stat: used: `%u', free: `%u'\n",
 			used_pages, state.pages_cnt - used_pages);
 }
