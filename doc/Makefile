@@ -12,6 +12,7 @@ PDF=rpz.pdf
 DIA=graphics/dia
 DOT=graphics/dot
 SVG=graphics/svg
+GNUPLOT=graphics/gnuplot
 TEX=tex
 DEPS=.deps
 SRC=src
@@ -47,6 +48,10 @@ $(PDF): $(TEX)/$(MAINTEX).tex $(STYLES) $(BIBFILE)
 $(INC)/dia/%.eps: $(DIA)/%.dia
 	mkdir -p $(INC)/dia
 	dia -e $(@:%.pdf=%.eps) -t eps-pango $<
+
+$(INC)/gnuplot/%.pdf: $(GNUPLOT)/%.gp
+	mkdir -p $(@D)
+	gnuplot $< && mv $(@F) $(@D)
 
 # .dot -> .eps (via dot2tex)
 $(INC)/dot/%.eps: $(DOT)/%.dot
