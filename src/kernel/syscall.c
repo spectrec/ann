@@ -1,6 +1,7 @@
 #include "kernel/task.h"
 #include "kernel/syscall.h"
 #include "kernel/lib/memory/map.h"
+#include "kernel/lib/memory/mmu.h"
 #include "kernel/lib/memory/layout.h"
 
 #include "stdlib/assert.h"
@@ -9,22 +10,24 @@
 
 #include "kernel/lib/console/terminal.h"
 
-static int task_dup_page(struct task *dest, struct task *src, void *va, uint8_t perm)
+static int task_share_page(struct task *dest, struct task *src, void *va, unsigned perm)
 {
 	uintptr_t va_addr = (uintptr_t)va;
-	struct page *p = page_alloc();
+	struct page *p;
 
-	if (p == NULL) {
-		terminal_printf("task_dup_page: can't allocate page\n");
-		return -1;
+	p = page_lookup(src->pml4, va_addr, NULL);
+	assert(p != NULL);
+
+	if ((perm & PTE_W) != 0 || (perm & PTE_COW) != 0) {
+		perm = (perm | PTE_COW) & ~PTE_W;
+		if (page_insert(src->pml4, p, va_addr, perm) != 0)
+			return -1;
+		if (page_insert(dest->pml4, p, va_addr, perm) != 0)
+			return -1;
+	} else {
+		if (page_insert(dest->pml4, p, va_addr, perm) != 0)
+			return -1;
 	}
-
-	if (page_insert(dest->pml4, p, va_addr, perm) != 0)
-		return -1;
-	if (page_insert(src->pml4, p, USER_TEMP, PTE_W) != 0)
-		return -1;
-	memcpy((void *)USER_TEMP, va, PAGE_SIZE);
-	page_remove(src->pml4, USER_TEMP);
 
 	return 0;
 }
@@ -63,8 +66,8 @@ static int sys_fork(struct task *task)
 					if ((pte[l] & PTE_P) == 0)
 						continue;
 
-					uint8_t perm = pte[l] & PTE_FLAGS_MASK;
-					if (task_dup_page(child, task, PAGE_ADDR(i, j, k, l, 0), perm) != 0) {
+					unsigned perm = pte[l] & PTE_FLAGS_MASK;
+					if (task_share_page(child, task, PAGE_ADDR(i, j, k, l, 0), perm) != 0) {
 						task_destroy(child);
 						return -1;
 					}

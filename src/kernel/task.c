@@ -290,7 +290,7 @@ void schedule(void)
 			lcr3(tasks[idx].cr3);
 
 		cpu->task = &tasks[idx];
-		cpu->pml4 = tasks[idx].pml4;
+		cpu->pml4 = cpu->task->pml4;
 
 		next_task_idx = idx + 1;
 		task_run(&tasks[idx]);

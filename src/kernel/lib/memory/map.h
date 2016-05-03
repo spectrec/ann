@@ -30,7 +30,7 @@ struct mmap_state {
 void mmap_init(struct mmap_state *state);
 
 pte_t *mmap_lookup(pml4e_t *pml4, uint64_t va, bool create);
-int page_insert(pml4e_t *pml4, struct page *p, uintptr_t va, uint8_t perm);
+int page_insert(pml4e_t *pml4, struct page *p, uintptr_t va, unsigned perm);
 struct page *page_lookup(pml4e_t *pml4, uintptr_t va, pte_t **pte_p);
 void page_remove(pml4e_t *pml4, uintptr_t va);
 

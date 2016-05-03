@@ -111,12 +111,13 @@ void kernel_main(void)
 	// Initialize tasks free list
 	task_init();
 
-	// Enable interrupts and exceptions
-	interrupt_init();
-
 	TASK_STATIC_INITIALIZER(idle);
 	TASK_STATIC_INITIALIZER(hello);
 	TASK_STATIC_INITIALIZER(fork);
+
+	// Enable interrupts and exceptions. Do it after creating tasks,
+	// because timer may panic if no tasks found.
+	interrupt_init();
 
 	schedule();
 }

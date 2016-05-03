@@ -131,7 +131,7 @@ pde_found:
 	return &pt[PT_IDX(va)];
 }
 
-int page_insert(pml4e_t *pml4, struct page *p, uintptr_t va, uint8_t perm)
+int page_insert(pml4e_t *pml4, struct page *p, uintptr_t va, unsigned perm)
 {
 	pte_t *pte = mmap_lookup(pml4, va, 1);
 	if (pte == NULL)
@@ -140,6 +140,8 @@ int page_insert(pml4e_t *pml4, struct page *p, uintptr_t va, uint8_t perm)
 
 	// remap same page (possible change permissions)
 	if (PTE_ADDR(*pte) == page2pa(p)) {
+		invlpg((void *)va);
+
 		*pte = page2pa(p) | perm | PTE_P;
 		return 0;
 	}

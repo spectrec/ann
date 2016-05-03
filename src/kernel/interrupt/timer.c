@@ -19,10 +19,9 @@ int timer_init(void)
 
 void timer_handler(struct task *task)
 {
-	//static int count = 0;
+	(void)task;
 
-	//terminal_printf("timer: %u\n", count++);
 	APIC_WRITE(APIC_OFFSET_EOI, 0); // send EOI
 
-	task_run(task);
+	schedule();
 }

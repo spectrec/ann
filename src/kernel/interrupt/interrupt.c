@@ -1,6 +1,9 @@
 #include <cpuid.h>
 
 #include "stdlib/assert.h"
+#include "stdlib/string.h"
+
+#include "kernel/misc/util.h"
 
 #include "kernel/lib/memory/mmu.h"
 #include "kernel/lib/memory/map.h"
@@ -80,25 +83,59 @@ static const char *interrupt_name[256] = {
 #define PAGE_FAULT_ERROR_CODE_U_S	(1 << 2)
 #define PAGE_FAULT_ERROR_CODE_RSV	(1 << 3)
 #define PAGE_FAULT_ERROR_CODE_I_D	(1 << 4)
-void page_fault_handler(struct task_context ctx)
+void page_fault_handler(struct task *task)
 {
-	terminal_printf("Page fault at `%lx', opration: %s, accessed by: %s\n", rcr2(),
-			(ctx.error_code & PAGE_FAULT_ERROR_CODE_R_W) != 0 ? "write" : "read",
-			(ctx.error_code & PAGE_FAULT_ERROR_CODE_U_S) != 0 ? "user" : "supervisor");
-	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_P) == 0)
+	uintptr_t va = rcr2();
+	pte_t *pte;
+
+	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_R_W) == 0)
+		// non write error
+		goto fail;
+
+	page_lookup(task->pml4, va, &pte);
+	if ((*pte & PTE_COW) != 0) {
+		unsigned perm = *pte & PTE_FLAGS_MASK;
+		struct page *new = page_alloc();
+
+		assert((*pte & PTE_P) != 0);
+
+		if (new == NULL) {
+			terminal_printf("page_fault_handler: can't allocate page\n");
+			goto fail;
+		}
+		if (page_insert(task->pml4, new, USER_TEMP, perm | PTE_W) != 0)
+			goto fail;
+		memcpy((void *)USER_TEMP, (void *)ROUND_DOWN(va, PAGE_SIZE), PAGE_SIZE);
+		if (page_insert(task->pml4, new, ROUND_DOWN(va, PAGE_SIZE), (*pte & PTE_FLAGS_MASK) | PTE_W) != 0)
+			goto fail;
+		page_remove(task->pml4, USER_TEMP);
+
+		task_run(task);
+	}
+
+fail:
+	terminal_printf("Page fault at `%lx', opration: %s, accessed by: %s\n", va,
+			(task->context.error_code & PAGE_FAULT_ERROR_CODE_R_W) != 0 ? "write" : "read",
+			(task->context.error_code & PAGE_FAULT_ERROR_CODE_U_S) != 0 ? "user" : "supervisor");
+	if ((*pte & PTE_COW) != 0)
+		terminal_printf("\tpage is copy on write\n");
+	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_P) == 0)
 		terminal_printf("\tpage is not present\n");
-	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_RSV) != 0)
+	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_RSV) != 0)
 		terminal_printf("\tcheck reserved fields inside page tables\n");
-	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_I_D) != 0)
+	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_I_D) != 0)
 		terminal_printf("\tfault was because of instruction fetch\n");
 
-	// TODO: try to fix page fault
+	task_destroy(task);
+	schedule();
 }
 
 void interrupt_handler(struct task_context ctx)
 {
 	struct cpu_context *cpu = cpu_context();
 
+	// XXX: Interrups are disabled here, think twice before enable it,
+	// because they can modify `cpu' value (it may cause a lot of problems)
 	cpu->task->context = ctx;
 	if (cpu->task != &cpu->self_task)
 		cpu->task->state = TASK_STATE_READY;
@@ -108,7 +145,7 @@ void interrupt_handler(struct task_context ctx)
 		terminal_printf("breakpoint\n");
 		return task_run(cpu->task);
 	case INTERRUPT_VECTOR_PAGE_FAULT:
-		return page_fault_handler(ctx);
+		return page_fault_handler(cpu->task);
 	case INTERRUPT_VECTOR_DIV_BY_ZERO:
 	case INTERRUPT_VECTOR_DEBUG:
 	case INTERRUPT_VECTOR_NMI:

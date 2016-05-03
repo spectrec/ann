@@ -89,4 +89,7 @@ typedef uint64_t pte_t;   // page table entry
 
 #define PTE_FLAGS_MASK	(0xFFF)		// low 12 bits
 
+// Mark page copy-on-write (kernel internal logic)
+#define PTE_COW		(1 << 11)
+
 #endif
