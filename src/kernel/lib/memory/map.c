@@ -21,7 +21,7 @@ struct page *page_alloc(void)
 	if (p != NULL) {
 		LIST_REMOVE(p, link);
 
-		// XXX: set to `NULL' is important. Because kerenel think
+		// XXX: set to `NULL' is important. Because kernel think
 		// that page is free only if it has NULL links
 		memset(p, 0, sizeof(*p));
 	}

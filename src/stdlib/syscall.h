@@ -6,6 +6,7 @@
 #ifndef __ASSEMBLER__
 enum syscall {
 	SYSCALL_PUTS	= 0,
+	SYSCALL_EXIT	= 1,
 
 	SYSCALL_LAST
 };

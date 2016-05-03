@@ -6,6 +6,7 @@
 #include "kernel/lib/console/terminal.h"
 
 #include "kernel/asm.h"
+#include "kernel/cpu.h"
 #include "kernel/task.h"
 #include "kernel/loader/config.h"
 #include "kernel/interrupt/interrupt.h"
@@ -35,21 +36,23 @@ struct page32 {
 void kernel_init_mmap(void)
 {
 	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
+	struct cpu_context *cpu = cpu_context();
+	static struct mmap_state state;
+	struct page32 *pages32;
 	struct gdtr {
 		uint16_t limit;
 		uint64_t base;
 	} __attribute__((packed)) gdtr;
-	static struct mmap_state state;
-	struct page32 *pages32;
 
 	// Convert physical addresses into virtual ones
 	config->gdt.ptr = VADDR(config->gdt.ptr);
 	config->pml4.ptr = VADDR(config->pml4.ptr);
 	config->pages.ptr = VADDR(config->pages.ptr);
 
+	cpu->pml4 = config->pml4.ptr;
+
 	// Reinitialize state
 	state.free = (struct mmap_free_pages){ NULL };
-	state.pml4 = config->pml4.ptr;
 	state.pages_cnt = config->pages_cnt;
 	state.pages = config->pages.ptr;
 	mmap_init(&state);
@@ -62,7 +65,7 @@ void kernel_init_mmap(void)
 	asm volatile("lgdt (%0)" : : "p"(&gdtr));
 
 	pages32 = (struct page32 *)config->pages.ptr;
-	state.pml4[0] = 0; // remove unneeded mappings
+	cpu->pml4[0] = 0; // remove unneeded mappings
 
 	// First of all - convert `page32' into 64-bit `page'.
 	// And rebuild free list
@@ -91,7 +94,7 @@ void kernel_init_mmap(void)
 
 	// Recursively insert PML4 into itself as a page table.
 	// This allows access to all page table hierarchy, using virtual addresses.
-	state.pml4[PML4_IDX(VPT)] = PADDR(state.pml4) | PML4E_W | PML4E_P;
+	cpu->pml4[PML4_IDX(VPT)] = PADDR(cpu->pml4) | PML4E_W | PML4E_P;
 
 	terminal_printf("Pages stat: used: `%u', free: `%u'\n",
 			used_pages, state.pages_cnt - used_pages);
@@ -103,7 +106,7 @@ void kernel_main(void)
 	extern uint8_t edata[], end[];
 	memset(edata, 0, end - edata);
 
-	// Reset terminal (without this output will not work)
+	// Reset terminal
 	terminal_init();
 
 	// Initialize memory (process info prepared by loader)

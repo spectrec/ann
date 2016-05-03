@@ -15,6 +15,12 @@ void syscall(struct task *task)
 	case SYSCALL_PUTS:
 		terminal_printf("%s", (char *)task->context.gprs.rbx);
 		break;
+	case SYSCALL_EXIT:
+		terminal_printf("task [%d] exited with value `%d'\n",
+				task->id, task->context.gprs.rbx);
+		task_destroy(task);
+
+		return schedule();
 	default:
 		panic("unknown syscall `%u'\n", syscall);
 	}

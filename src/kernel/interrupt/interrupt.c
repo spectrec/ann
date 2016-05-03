@@ -92,19 +92,19 @@ void page_fault_handler(struct task_context ctx)
 	if ((ctx.error_code & PAGE_FAULT_ERROR_CODE_I_D) != 0)
 		terminal_printf("\tfault was because of instruction fetch\n");
 
-	while (1);
+	// TODO: try to fix page fault
 }
 
 void interrupt_handler(struct task_context ctx)
 {
-	struct task task = {
-		.context = ctx
-	};
+	struct cpu_context *cpu = cpu_context();
+
+	cpu->task.context = ctx;
 
 	switch (ctx.interrupt_number) {
 	case INTERRUPT_VECTOR_BREAKPOINT:
 		terminal_printf("breakpoint\n");
-		return task_run(&task);
+		return task_run(&cpu->task);
 	case INTERRUPT_VECTOR_PAGE_FAULT:
 		return page_fault_handler(ctx);
 	case INTERRUPT_VECTOR_DIV_BY_ZERO:
@@ -126,11 +126,11 @@ void interrupt_handler(struct task_context ctx)
 	case INTERRUPT_VECTOR_SECURITY_EXCEPTION:
 		break;
 	case INTERRUPT_VECTOR_SYSCALL:
-		return syscall(&task);
+		return syscall(&cpu->task);
 	case INTERRUPT_VECTOR_TIMER:
-		return timer_handler(&task);
+		return timer_handler(&cpu->task);
 	case INTERRUPT_VECTOR_KEYBOARD:
-		return keyboard_handler(&task);
+		return keyboard_handler(&cpu->task);
 	}
 
 	terminal_printf("\nunhandled interrupt: %s (%u)\n",
@@ -150,8 +150,8 @@ void interrupt_handler(struct task_context ctx)
 			(uint32_t)ctx.ds, (uint32_t)ctx.es, (uint32_t)ctx.fs, (uint32_t)ctx.gs,
 			ctx.rip, ctx.rflags);
 
-	// TODO: destroy task and call scheduler
-	panic("hang up\n");
+	task_destroy(&cpu->task);
+	schedule();
 }
 
 int ioapic_init(void)
@@ -196,6 +196,7 @@ void interrupt_init(void)
 {
 	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
 	struct descriptor *gdt = config->gdt.ptr;
+	struct cpu_context *cpu = cpu_context();
 	struct idtr {
 		uint16_t limit;
 		void *base;
@@ -247,7 +248,7 @@ void interrupt_init(void)
 
 		if ((page = page_alloc()) == NULL)
 			panic("not enough memory for interrup handler stack");
-		if (page_insert(config->pml4.ptr, page, addr, PTE_W) != 0)
+		if (page_insert(cpu->pml4, page, addr, PTE_W) != 0)
 			panic("can't map stack for interrupt handler");
 	}
 

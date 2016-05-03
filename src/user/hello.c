@@ -1,6 +1,7 @@
 #include "user/syscall.h"
 
-void main(void)
+int main(void)
 {
 	sys_puts("Hello world\n");
+	return 0;
 }

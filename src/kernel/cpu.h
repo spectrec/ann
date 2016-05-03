@@ -17,10 +17,13 @@ struct cpu_map {
 };
 
 struct cpu_context {
-	struct task *task;
+	pml4e_t *pml4;
+
+	struct task task;
 };
 
 cpuid_t cpu_get_id(void);
-struct cpu_context *cpu_get_context(cpuid_t id);
+struct cpu_context *cpu_context(void);
+struct cpu_context *cpu_context_by_id(cpuid_t id);
 
 #endif

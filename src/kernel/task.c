@@ -6,6 +6,7 @@
 #include "kernel/lib/console/terminal.h"
 
 #include "kernel/asm.h"
+#include "kernel/cpu.h"
 #include "kernel/task.h"
 #include "kernel/misc/elf.h"
 #include "kernel/misc/gdt.h"
@@ -38,7 +39,7 @@ struct task *task_new(void)
 	LIST_REMOVE(task, free_link);
 	memset(task, 0, sizeof(*task));
 
-	task->id = last_task_id++;
+	task->id = ++last_task_id;
 	task->state = TASK_STATE_DONT_RUN;
 
 	return task;
@@ -46,10 +47,60 @@ struct task *task_new(void)
 
 void task_destroy(struct task *task)
 {
-	task->state = TASK_STATE_DONT_RUN;
+	// remove all mapped pages from current task
+	for (uint16_t i = 0; i <= PML4_IDX(USER_TOP); i++) {
+		uintptr_t pdpe_pa = PML4E_ADDR(task->pml4[i]);
 
-	// TODO: clear all pages
+		if ((task->pml4[i] & PML4E_P) == 0)
+			continue;
+
+		pdpe_t *pdpe = VADDR(pdpe_pa);
+		for (uint16_t j = 0; j < NPDP_ENTRIES; j++) {
+			uintptr_t pde_pa = PDPE_ADDR(pdpe[j]);
+
+			if ((pdpe[j] & PDPE_P) == 0)
+				continue;
+
+			pde_t *pde = VADDR(pde_pa);
+			for (uint16_t k = 0; k < NPD_ENTRIES; k++) {
+				uintptr_t pte_pa = PTE_ADDR(pde[k]);
+
+				if ((pde[k] & PDE_P) == 0)
+					continue;
+
+				pte_t *pte = VADDR(pte_pa);
+				for (uint16_t l = 0; l < NPT_ENTRIES; l++) {
+					if ((pte[l] & PTE_P) == 0)
+						continue;
+
+					page_decref(pa2page(PTE_ADDR(pte[l])));
+				}
+
+				pde[k] = 0;
+				page_decref(pa2page(pte_pa));
+			}
+
+			pdpe[j] = 0;
+			page_decref(pa2page(pde_pa));
+		}
+
+		task->pml4[i] = 0;
+		page_decref(pa2page(pdpe_pa));
+	}
+
+	// Reload cr3, because it may be reused after `page_decref'
+	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
+	lcr3(PADDR(config->pml4.ptr));
+
+	// Don't destroy kernel pml4
+	assert(config->pml4.ptr != task->pml4);
+
+	page_decref(pa2page(task->cr3));
+	task->pml4 = NULL;
+	task->cr3 = 0;
+
 	LIST_INSERT_HEAD(&free_tasks, task, free_link);
+	task->state = TASK_STATE_FREE;
 }
 
 static int task_load_segment(struct task *task, const char *name,
@@ -167,8 +218,13 @@ cleanup:
 
 void task_run(struct task *task)
 {
+	struct cpu_context *cpu = cpu_context();
+
 	// Always enable interrupts
 	task->context.rflags |= RFLAGS_IF;
+
+	cpu->task = *task;
+	cpu->pml4 = task->pml4;
 
 	asm volatile(
 		"movq %0, %%rsp\n\t"

@@ -19,8 +19,6 @@
 #define KERNEL_STACK_TOP	(VPT - VPT_SIZE)
 #define KERNEL_STACK_SIZE	(PAGE_SIZE * 8)
 
-
-
 #define KERNEL_INFO		(KERNEL_STACK_TOP - KERNEL_STACK_SIZE - PAGE_SIZE)
 
 // Virtual address of the APIC base

@@ -1,12 +1,9 @@
-void main(void);
+#include "user/syscall.h"
+
+int main(void);
 
 void user_entry(void)
 {
-	// TODO: set name, set id
-
-	main();
-
-	// exit()
-
-	while (1);
+	int ret = main();
+	sys_exit(ret);
 }

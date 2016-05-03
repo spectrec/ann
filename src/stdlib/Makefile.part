@@ -11,6 +11,6 @@ ${STDLIB_BUILDDIR}/${STDLIB_NAME}: ${stdlib_objects}
 
 ${STDLIB_BUILDDIR}/%.o: ${STDLIB_DIR}/%.c
 	@mkdir -p $(@D)
-	$(CC) -c -o $@ $^ ${STDLIB_CFLAGS}
+	$(CC) -c -o $@ $< ${STDLIB_CFLAGS}
 
 -include ${stdlib_deps}

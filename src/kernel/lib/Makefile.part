@@ -4,6 +4,7 @@ kernel_lib_sources = memory/map.c \
 
 KERNEL_LIB_BUILDDIR := ${KERNEL_LIB_DIR}/${KERNEL_LIB_ARCH}
 kernel_lib_objects := $(patsubst %.c, ${KERNEL_LIB_BUILDDIR}/%.o, ${kernel_lib_sources})
+kernel_lib_deps := $(patsubst %.o, %.d, ${kernel_lib_sources})
 
 ${KERNEL_LIB_BUILDDIR}/${KERNEL_LIB_NAME}: KERNEL_LIB_CFLAGS := ${KERNEL_LIB_CFLAGS}
 ${KERNEL_LIB_BUILDDIR}/${KERNEL_LIB_NAME}: ${kernel_lib_objects}
@@ -12,4 +13,6 @@ ${KERNEL_LIB_BUILDDIR}/${KERNEL_LIB_NAME}: ${kernel_lib_objects}
 
 ${KERNEL_LIB_BUILDDIR}/%.o: ${KERNEL_LIB_DIR}/%.c
 	@mkdir -p $(@D)
-	$(CC) -c -o $@ $^ ${KERNEL_LIB_CFLAGS}
+	$(CC) -c -o $@ $< ${KERNEL_LIB_CFLAGS}
+
+-include ${kernel_lib_deps}

@@ -25,3 +25,8 @@ void sys_puts(const char *string)
 {
 	return (void)syscall(SYSCALL_PUTS, (uintptr_t)string, 0, 0, 0, 0);
 }
+
+void sys_exit(int ret)
+{
+	return (void)syscall(SYSCALL_EXIT, (int64_t)ret, 0, 0, 0, 0);
+}

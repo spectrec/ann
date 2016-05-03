@@ -133,8 +133,8 @@ struct descriptor64 {
 	}								\
 }
 
-#define TRAP_GATE(sel_, off_, ist_, dpl_) GATE(sel_, ((uint64_t)off_), ist_, TYPE_INTERRUPT_GATE, dpl_)
-#define INTERRUPT_GATE(sel_, off_, ist_, dpl_) GATE(sel_, ((uint64_t)off_), ist_, TYPE_TRAP_GATE, dpl_)
+#define TRAP_GATE(sel_, off_, ist_, dpl_) GATE(sel_, ((uint64_t)off_), ist_, TYPE_TRAP_GATE, dpl_)
+#define INTERRUPT_GATE(sel_, off_, ist_, dpl_) GATE(sel_, ((uint64_t)off_), ist_, TYPE_INTERRUPT_GATE, dpl_)
 
 #define TSS(base_, limit_, type_, dpl_) (struct descriptor64) {	\
 	.tss = {						\

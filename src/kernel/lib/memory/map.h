@@ -19,9 +19,6 @@ struct page {
 LIST_HEAD(mmap_free_pages, page);
 
 struct mmap_state {
-	// Virtual address of PML4
-	pml4e_t *pml4;
-
 	// Virtual address of physical pages array
 	struct page *pages;
 	uint64_t pages_cnt;

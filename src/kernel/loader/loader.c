@@ -53,7 +53,7 @@ struct kernel_config *config;
 void *loader_alloc(uint64_t size, uint32_t align);
 void loader_detect_memory(struct bios_mmap_entry *mm, uint32_t cnt);
 int loader_init_memory(struct bios_mmap_entry *mm, uint32_t cnt);
-int loader_map_section(struct mmap_state *state, uint64_t va, uintptr_t pa, uint64_t len, bool hard);
+int loader_map_section(uint64_t va, uintptr_t pa, uint64_t len, bool hard);
 
 bool page_is_available(uint64_t paddr, struct bios_mmap_entry *mm, uint32_t cnt);
 
@@ -177,7 +177,6 @@ int loader_init_memory(struct bios_mmap_entry *mm, uint32_t cnt)
 	state.free = (struct mmap_free_pages){ NULL };
 	state.pages_cnt = pages_cnt;
 	state.pages = pages;
-	state.pml4 = pml4;
 	mmap_init(&state);
 
 	// Fill in free pages list, skip ones used by kernel or hardware
@@ -195,31 +194,31 @@ int loader_init_memory(struct bios_mmap_entry *mm, uint32_t cnt)
 	}
 
 	// Map kernel stack
-	if (loader_map_section(&state, KERNEL_STACK_TOP - KERNEL_STACK_SIZE,
+	if (loader_map_section(KERNEL_STACK_TOP - KERNEL_STACK_SIZE,
 			(uintptr_t)boot_stack, KERNEL_STACK_SIZE, true) != 0)
 		return -1;
 
 	// Pass some information to kernel
-	if (loader_map_section(&state, KERNEL_INFO, (uintptr_t)config, PAGE_SIZE, true) != 0)
+	if (loader_map_section(KERNEL_INFO, (uintptr_t)config, PAGE_SIZE, true) != 0)
 		return -1;
 
 	// Make APIC registers available for the kernel
-	if (loader_map_section(&state, APIC_BASE, APIC_BASE_PA, PAGE_SIZE, true) != 0)
+	if (loader_map_section(APIC_BASE, APIC_BASE_PA, PAGE_SIZE, true) != 0)
 		return -1;
 
 	// Make IO APIC registers available for the kernel
-	if (loader_map_section(&state, IOAPIC_BASE, IOAPIC_BASE_PA, PAGE_SIZE, true) != 0)
+	if (loader_map_section(IOAPIC_BASE, IOAPIC_BASE_PA, PAGE_SIZE, true) != 0)
 		return -1;
 
 	// Map loader to make all addresses valid after paging enable
 	// (before jump to kernel entry point). We must map all until
 	// `free_memory' not just `end', because `pml4' located after `end'
-	if (loader_map_section(&state, 0x0, 0x0, (uintptr_t)free_memory, true) != 0)
+	if (loader_map_section(0x0, 0x0, (uintptr_t)free_memory, true) != 0)
 		return -1;
 
 	// Make continuous mapping [KERNEL_BASE, KERNEL_BASE + FREE_MEM) -> [0, FREE_MEM)
 	// Without this mapping we can't compute virtual address from physical one
-	if (loader_map_section(&state, KERNEL_BASE, 0x0, ROUND_DOWN(max_physical_address, PAGE_SIZE), false) != 0)
+	if (loader_map_section(KERNEL_BASE, 0x0, ROUND_DOWN(max_physical_address, PAGE_SIZE), false) != 0)
 		return -1;
 
 	return 0;
@@ -291,13 +290,13 @@ bool page_is_available(uint64_t paddr, struct bios_mmap_entry *mm, uint32_t cnt)
 	return page_is_available;
 }
 
-int loader_map_section(struct mmap_state *state, uint64_t va, uintptr_t pa, uint64_t len, bool hard)
+int loader_map_section(uint64_t va, uintptr_t pa, uint64_t len, bool hard)
 {
 	uint64_t va_aligned = ROUND_DOWN(va, PAGE_SIZE);
 	uint64_t len_aligned = ROUND_UP(len, PAGE_SIZE);
 
 	for (uint64_t i = 0; i < len_aligned; i += PAGE_SIZE) {
-		pte_t *pte = mmap_lookup(state->pml4, va_aligned + i, true);
+		pte_t *pte = mmap_lookup(pml4, va_aligned + i, true);
 		struct page *page;
 
 		if (pte == NULL)
