@@ -5,5 +5,6 @@
 
 void sys_puts(const char *string);
 void sys_exit(int ret);
+int sys_fork(void);
 
 #endif

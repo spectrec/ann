@@ -92,10 +92,6 @@ void kernel_init_mmap(void)
 		assert(p->ref <= 1);
 	}
 
-	// Recursively insert PML4 into itself as a page table.
-	// This allows access to all page table hierarchy, using virtual addresses.
-	cpu->pml4[PML4_IDX(VPT)] = PADDR(cpu->pml4) | PML4E_W | PML4E_P;
-
 	terminal_printf("Pages stat: used: `%u', free: `%u'\n",
 			used_pages, state.pages_cnt - used_pages);
 }
@@ -112,13 +108,14 @@ void kernel_main(void)
 	// Initialize memory (process info prepared by loader)
 	kernel_init_mmap();
 
-	// Enable interrupts and exceptions
-	interrupt_init();
-
 	// Initialize tasks free list
 	task_init();
 
+	// Enable interrupts and exceptions
+	interrupt_init();
+
 	TASK_STATIC_INITIALIZER(hello);
+	TASK_STATIC_INITIALIZER(fork);
 
 	schedule();
 }

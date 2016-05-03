@@ -19,7 +19,8 @@ struct cpu_map {
 struct cpu_context {
 	pml4e_t *pml4;
 
-	struct task task;
+	struct task *task;
+	struct task self_task;
 };
 
 cpuid_t cpu_get_id(void);

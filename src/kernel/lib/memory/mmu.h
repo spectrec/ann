@@ -35,8 +35,20 @@
 # define PT_IDX(addr_)		(((uint64_t)addr_ >> PT_SHIFT)   & IDX_MASK)
 
 // Build linear address from indexes and offset. Don't forget about canonical address form
-# define PAGE_ADDR(pml4, pdp, pd, pt, off) \
-	((void *)( (-1ull << 48) | ((pml4) << PML4_SHIFT) | ((pdp) << PDP_SHIFT) | ((pd) << PD_SHIFT) | ((pt) << PT_SHIFT) | (off) ))
+# define PAGE_ADDR(pml4, pdp, pd, pt, off) ({		\
+	uint64_t pml4_ = pml4;				\
+	uint64_t pdp_ = pdp;				\
+	uint64_t pd_ = pd;				\
+	uint64_t pt_ = pt;				\
+	uint64_t sign_ = (pml4_ & (1ull << 8)) ?	\
+			(-1ull << 48) : 0;		\
+							\
+	(void *)( (sign_) |				\
+		  ((pml4_) << PML4_SHIFT) |		\
+		  ((pdp_) << PDP_SHIFT) |		\
+		  ((pd_) << PD_SHIFT) |			\
+		  ((pt_) << PT_SHIFT) | (off) );	\
+})
 
 typedef uint64_t pml4e_t; // page map level 4 entry
 typedef uint64_t pdpe_t;  // page direcroty pointer entry
@@ -74,5 +86,7 @@ typedef uint64_t pte_t;   // page table entry
 #define PTE_D		(1 << 6)	// dirty
 #define PTE_PAT		(1 << 7)	// page-attribute table
 #define PTE_G		(1 << 8)	// global
+
+#define PTE_FLAGS_MASK	(0xFFF)		// low 12 bits
 
 #endif

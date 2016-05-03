@@ -99,12 +99,12 @@ void interrupt_handler(struct task_context ctx)
 {
 	struct cpu_context *cpu = cpu_context();
 
-	cpu->task.context = ctx;
+	cpu->task->context = ctx;
 
 	switch (ctx.interrupt_number) {
 	case INTERRUPT_VECTOR_BREAKPOINT:
 		terminal_printf("breakpoint\n");
-		return task_run(&cpu->task);
+		return task_run(cpu->task);
 	case INTERRUPT_VECTOR_PAGE_FAULT:
 		return page_fault_handler(ctx);
 	case INTERRUPT_VECTOR_DIV_BY_ZERO:
@@ -126,11 +126,11 @@ void interrupt_handler(struct task_context ctx)
 	case INTERRUPT_VECTOR_SECURITY_EXCEPTION:
 		break;
 	case INTERRUPT_VECTOR_SYSCALL:
-		return syscall(&cpu->task);
+		return syscall(cpu->task);
 	case INTERRUPT_VECTOR_TIMER:
-		return timer_handler(&cpu->task);
+		return timer_handler(cpu->task);
 	case INTERRUPT_VECTOR_KEYBOARD:
-		return keyboard_handler(&cpu->task);
+		return keyboard_handler(cpu->task);
 	}
 
 	terminal_printf("\nunhandled interrupt: %s (%u)\n",
@@ -150,7 +150,7 @@ void interrupt_handler(struct task_context ctx)
 			(uint32_t)ctx.ds, (uint32_t)ctx.es, (uint32_t)ctx.fs, (uint32_t)ctx.gs,
 			ctx.rip, ctx.rflags);
 
-	task_destroy(&cpu->task);
+	task_destroy(cpu->task);
 	schedule();
 }
 
@@ -204,33 +204,33 @@ void interrupt_init(void)
 		sizeof(idt)-1, idt
 	};
 
-	// setup interrupt handlers
-	idt[INTERRUPT_VECTOR_DIV_BY_ZERO] = TRAP_GATE(GD_KT, interrupt_handler_div_by_zero, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_DEBUG] = TRAP_GATE(GD_KT, interrupt_handler_debug, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_NMI] = TRAP_GATE(GD_KT, interrupt_handler_nmi, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_BREAKPOINT] = TRAP_GATE(GD_KT, interrupt_handler_breakpoint, 0, IDT_DPL_U);
-	idt[INTERRUPT_VECTOR_OVERFLOW] = TRAP_GATE(GD_KT, interrupt_handler_overflow, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_BOUND_RANGE] = TRAP_GATE(GD_KT, interrupt_handler_bound_range, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_IVALID_OPCODE] = TRAP_GATE(GD_KT, interrupt_handler_ivalid_opcode, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_DEVICE_NOT_AVAILABLE] = TRAP_GATE(GD_KT, interrupt_handler_device_not_available, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_DOUBLE_FAULT] = TRAP_GATE(GD_KT, interrupt_handler_double_fault, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_INVALID_TSS] = TRAP_GATE(GD_KT, interrupt_handler_invalid_tss, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_SEGMENT_NOT_PRESENT] = TRAP_GATE(GD_KT, interrupt_handler_segment_not_present, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_STACK] = TRAP_GATE(GD_KT, interrupt_handler_stack, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_GENERAL_PROTECTION] = TRAP_GATE(GD_KT, interrupt_handler_general_protection, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_PAGE_FAULT] = TRAP_GATE(GD_KT, interrupt_handler_page_fault, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_X86_FP_INSTRUCTION] = TRAP_GATE(GD_KT, interrupt_handler_x86_fp_instruction, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_ALIGNMENT_CHECK] = TRAP_GATE(GD_KT, interrupt_handler_alignment_check, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_MACHINE_CHECK] = TRAP_GATE(GD_KT, interrupt_handler_machine_check, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_SIMD_FP] = TRAP_GATE(GD_KT, interrupt_handler_simd_fp, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_SECURITY_EXCEPTION] = TRAP_GATE(GD_KT, interrupt_handler_security_exception, 0, IDT_DPL_S);
+	// XXX: `INTERRUPT_GATE' used everywhere just to simplify code. So `interrupt_handler' shouldn't be reentrant.
+	idt[INTERRUPT_VECTOR_DIV_BY_ZERO] = INTERRUPT_GATE(GD_KT, interrupt_handler_div_by_zero, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_DEBUG] = INTERRUPT_GATE(GD_KT, interrupt_handler_debug, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_NMI] = INTERRUPT_GATE(GD_KT, interrupt_handler_nmi, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_BREAKPOINT] = INTERRUPT_GATE(GD_KT, interrupt_handler_breakpoint, 0, IDT_DPL_U);
+	idt[INTERRUPT_VECTOR_OVERFLOW] = INTERRUPT_GATE(GD_KT, interrupt_handler_overflow, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_BOUND_RANGE] = INTERRUPT_GATE(GD_KT, interrupt_handler_bound_range, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_IVALID_OPCODE] = INTERRUPT_GATE(GD_KT, interrupt_handler_ivalid_opcode, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_DEVICE_NOT_AVAILABLE] = INTERRUPT_GATE(GD_KT, interrupt_handler_device_not_available, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_DOUBLE_FAULT] = INTERRUPT_GATE(GD_KT, interrupt_handler_double_fault, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_INVALID_TSS] = INTERRUPT_GATE(GD_KT, interrupt_handler_invalid_tss, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_SEGMENT_NOT_PRESENT] = INTERRUPT_GATE(GD_KT, interrupt_handler_segment_not_present, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_STACK] = INTERRUPT_GATE(GD_KT, interrupt_handler_stack, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_GENERAL_PROTECTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_general_protection, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_PAGE_FAULT] = INTERRUPT_GATE(GD_KT, interrupt_handler_page_fault, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_X86_FP_INSTRUCTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_x86_fp_instruction, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_ALIGNMENT_CHECK] = INTERRUPT_GATE(GD_KT, interrupt_handler_alignment_check, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_MACHINE_CHECK] = INTERRUPT_GATE(GD_KT, interrupt_handler_machine_check, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_SIMD_FP] = INTERRUPT_GATE(GD_KT, interrupt_handler_simd_fp, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_SECURITY_EXCEPTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_security_exception, 0, IDT_DPL_S);
 
 	// hardware interrups
 	idt[INTERRUPT_VECTOR_TIMER] = INTERRUPT_GATE(GD_KT, interrupt_handler_timer, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_KEYBOARD] = INTERRUPT_GATE(GD_KT, interrupt_handler_keyboard, 0, IDT_DPL_S);
 
 	// software interrupts
-	idt[INTERRUPT_VECTOR_SYSCALL] = TRAP_GATE(GD_KT, interrupt_handler_syscall, 0, IDT_DPL_U);
+	idt[INTERRUPT_VECTOR_SYSCALL] = INTERRUPT_GATE(GD_KT, interrupt_handler_syscall, 0, IDT_DPL_U);
 
 	// Load idt
 	asm volatile("lidt %0" :: "m" (idtr));

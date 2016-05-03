@@ -20,14 +20,22 @@ static task_id_t last_task_id;
 
 void task_init(void)
 {
+	struct cpu_context *cpu = cpu_context();
+
 	for (int32_t i = TASK_MAX_CNT-1; i >= 0; i--) {
 		LIST_INSERT_HEAD(&free_tasks, &tasks[i], free_link);
 		tasks[i].state = TASK_STATE_FREE;
 	}
+
+	cpu->task = &cpu->self_task;
+	memset(cpu->task, 0, sizeof(*cpu->task));
 }
 
 struct task *task_new(void)
 {
+	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
+	pml4e_t *kernel_pml4 = config->pml4.ptr;
+	struct page *pml4_page;
 	struct task *task;
 
 	task = LIST_FIRST(&free_tasks);
@@ -42,11 +50,36 @@ struct task *task_new(void)
 	task->id = ++last_task_id;
 	task->state = TASK_STATE_DONT_RUN;
 
+	if ((pml4_page = page_alloc()) == NULL) {
+		terminal_printf("Can't create new task: no memory for new pml4\n");
+		return NULL;
+	}
+	page_incref(pml4_page);
+
+	task->pml4 = page2kva(pml4_page);
+	task->cr3 = PADDR(task->pml4);
+
+	// clear PML4
+	memset(task->pml4, 0, PAGE_SIZE);
+
+	// Kernel space is equal for each task
+	memcpy(&task->pml4[PML4_IDX(USER_TOP)], &kernel_pml4[PML4_IDX(USER_TOP)],
+	       PAGE_SIZE - PML4_IDX(USER_TOP)*sizeof(pml4e_t));
+
 	return task;
 }
 
 void task_destroy(struct task *task)
 {
+	if (task->pml4 == NULL)
+		// Nothing to do (possible when `task_new' failed)
+		return;
+
+	struct cpu_context *cpu = cpu_context();
+	assert(task != &cpu->self_task);
+	if (task == cpu->task)
+		cpu->task = NULL;
+
 	// remove all mapped pages from current task
 	for (uint16_t i = 0; i <= PML4_IDX(USER_TOP); i++) {
 		uintptr_t pdpe_pa = PML4E_ADDR(task->pml4[i]);
@@ -101,6 +134,8 @@ void task_destroy(struct task *task)
 
 	LIST_INSERT_HEAD(&free_tasks, task, free_link);
 	task->state = TASK_STATE_FREE;
+
+	terminal_printf("task [%d] has been destroyed\n", task->id);
 }
 
 static int task_load_segment(struct task *task, const char *name,
@@ -166,28 +201,11 @@ cleanup:
 
 int task_create(const char *name, uint8_t *binary, size_t size)
 {
-	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
-	pml4e_t *kernel_pml4 = config->pml4.ptr;
-	struct page *pml4_page, *stack;
+	struct page *stack;
 	struct task *task;
 
 	if ((task = task_new()) == NULL)
 		return -1;
-	if ((pml4_page = page_alloc()) == NULL) {
-		terminal_printf("Can't create `%s': no memory for new pml4\n", name);
-		return -1;
-	}
-	page_incref(pml4_page);
-
-	task->pml4 = page2kva(pml4_page);
-	task->cr3 = PADDR(task->pml4);
-
-	// clear PML4
-	memset(task->pml4, 0, PAGE_SIZE);
-
-	// Kernel space is equal for each task
-	memcpy(&task->pml4[PML4_IDX(USER_TOP)], &kernel_pml4[PML4_IDX(USER_TOP)],
-	       PAGE_SIZE - PML4_IDX(USER_TOP));
 
 	if (task_load(task, name, binary, size) != 0)
 		goto cleanup;
@@ -218,13 +236,8 @@ cleanup:
 
 void task_run(struct task *task)
 {
-	struct cpu_context *cpu = cpu_context();
-
 	// Always enable interrupts
 	task->context.rflags |= RFLAGS_IF;
-
-	cpu->task = *task;
-	cpu->pml4 = task->pml4;
 
 	asm volatile(
 		"movq %0, %%rsp\n\t"
@@ -261,12 +274,17 @@ void task_run(struct task *task)
 
 void schedule(void)
 {
+	struct cpu_context *cpu = cpu_context();
+
 	for (uint32_t i = 0; i < TASK_MAX_CNT; i++) {
 		if (tasks[i].state == TASK_STATE_READY) {
 			tasks[i].state = TASK_STATE_RUN;
 
 			if (rcr3() != tasks[i].cr3)
 				lcr3(tasks[i].cr3);
+
+			cpu->task = &tasks[i];
+			cpu->pml4 = tasks[i].pml4;
 
 			task_run(&tasks[i]);
 		}
