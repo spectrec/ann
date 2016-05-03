@@ -35,3 +35,8 @@ int sys_fork(void)
 {
 	return syscall(SYSCALL_FORK, 0, 0, 0, 0, 0);
 }
+
+void sys_yield(void)
+{
+	return (void)syscall(SYSCALL_YIELD, 0, 0, 0, 0, 0);
+}

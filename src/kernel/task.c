@@ -238,6 +238,7 @@ void task_run(struct task *task)
 {
 	// Always enable interrupts
 	task->context.rflags |= RFLAGS_IF;
+	task->state = TASK_STATE_RUN;
 
 	asm volatile(
 		"movq %0, %%rsp\n\t"
@@ -275,19 +276,24 @@ void task_run(struct task *task)
 void schedule(void)
 {
 	struct cpu_context *cpu = cpu_context();
+	static int next_task_idx = 0;
 
-	for (uint32_t i = 0; i < TASK_MAX_CNT; i++) {
-		if (tasks[i].state == TASK_STATE_READY) {
-			tasks[i].state = TASK_STATE_RUN;
+	for (uint32_t i = next_task_idx, j = 0; j < TASK_MAX_CNT; j++) {
+		uint32_t idx = (i + j) % TASK_MAX_CNT;
 
-			if (rcr3() != tasks[i].cr3)
-				lcr3(tasks[i].cr3);
-
-			cpu->task = &tasks[i];
-			cpu->pml4 = tasks[i].pml4;
-
-			task_run(&tasks[i]);
+		if (tasks[idx].state != TASK_STATE_READY) {
+			assert(tasks[idx].state == TASK_STATE_FREE);
+			continue;
 		}
+
+		if (rcr3() != tasks[idx].cr3)
+			lcr3(tasks[idx].cr3);
+
+		cpu->task = &tasks[idx];
+		cpu->pml4 = tasks[idx].pml4;
+
+		next_task_idx = idx + 1;
+		task_run(&tasks[idx]);
 	}
 
 	panic("no more tasks");

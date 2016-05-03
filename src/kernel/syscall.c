@@ -96,6 +96,8 @@ void syscall(struct task *task)
 	case SYSCALL_FORK:
 		ret = sys_fork(task);
 		break;
+	case SYSCALL_YIELD:
+		return schedule();
 	default:
 		panic("unknown syscall `%u'\n", syscall);
 	}

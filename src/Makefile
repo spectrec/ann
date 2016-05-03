@@ -41,7 +41,8 @@ STDLIB64 = ${STDLIB64_DIR}/${STDLIB_NAME}
 # user specific
 USER_DIR = user
 USER_PROGS = ${USER_DIR}/hello.bin \
-	     ${USER_DIR}/fork.bin
+	     ${USER_DIR}/fork.bin \
+	     ${USER_DIR}/idle.bin
 
 # Kernel specific
 KERNEL_DIR = kernel

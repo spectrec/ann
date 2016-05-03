@@ -100,6 +100,8 @@ void interrupt_handler(struct task_context ctx)
 	struct cpu_context *cpu = cpu_context();
 
 	cpu->task->context = ctx;
+	if (cpu->task != &cpu->self_task)
+		cpu->task->state = TASK_STATE_READY;
 
 	switch (ctx.interrupt_number) {
 	case INTERRUPT_VECTOR_BREAKPOINT:

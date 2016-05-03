@@ -12,6 +12,8 @@ int main(void)
 			sys_puts("can't fork\n");
 		} else {
 			sys_puts("hello from parent\n");
+			sys_yield();
+			sys_puts("return into parent\n");
 		}
 	}
 
