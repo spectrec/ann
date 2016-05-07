@@ -25,8 +25,13 @@
 #define APIC_BASE		(KERNEL_INFO - PAGE_SIZE)
 #define IOAPIC_BASE		(APIC_BASE - PAGE_SIZE)
 
-#define INTERRUPT_STACK_SIZE	(PAGE_SIZE * 4)
+// Separate stack for interrupts (using IST),
+// because otherwise they may override stack of kernel threads
+#define INTERRUPT_STACK_SIZE	(PAGE_SIZE * 2)
 #define INTERRUPT_STACK_TOP	(IOAPIC_BASE)
+
+#define EXCEPTION_STACK_SIZE	(PAGE_SIZE * 2)
+#define EXCEPTION_STACK_TOP	(INTERRUPT_STACK_TOP - INTERRUPT_STACK_SIZE)
 
 
 // Physical address of the APIC base

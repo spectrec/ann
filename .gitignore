@@ -8,10 +8,11 @@ obj/
 *.out
 *.bin
 
-bootloader
-loader
-kernel
-stdlib
+src/kernel/boot/bootloader
+src/kernel/loader/loader
+src/kernel/kernel
+src/kernel/lib
+src/stdlib
 
 # Debug files
 *.debug

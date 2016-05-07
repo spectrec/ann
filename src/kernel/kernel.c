@@ -8,6 +8,7 @@
 #include "kernel/asm.h"
 #include "kernel/cpu.h"
 #include "kernel/task.h"
+#include "kernel/thread.h"
 #include "kernel/loader/config.h"
 #include "kernel/interrupt/interrupt.h"
 
@@ -96,6 +97,15 @@ void kernel_init_mmap(void)
 			used_pages, state.pages_cnt - used_pages);
 }
 
+// Just to demonstrate possible threads implementation
+void kernel_thread(void *arg __attribute__((unused)))
+{
+	while (1) {
+		// call schedule
+		asm volatile("int3");
+	}
+}
+
 void kernel_main(void)
 {
 	// Initialize bss
@@ -111,13 +121,20 @@ void kernel_main(void)
 	// Initialize tasks free list
 	task_init();
 
-	TASK_STATIC_INITIALIZER(idle);
+	// Init interrupts and exceptions.
+	interrupt_init();
+
 	TASK_STATIC_INITIALIZER(hello);
 	TASK_STATIC_INITIALIZER(fork);
 
-	// Enable interrupts and exceptions. Do it after creating tasks,
-	// because timer may panic if no tasks found.
-	interrupt_init();
+	struct task *thread = thread_create(kernel_thread, NULL, 0);
+	if (thread == NULL)
+		panic("can't create kernel thread");
+	thread_run(thread);
+
+	// Do it after creating tasks, because timer may
+	// panic if no tasks found.
+	interrupt_enable();
 
 	schedule();
 }

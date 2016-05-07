@@ -144,7 +144,6 @@ void keyboard_handler(struct task *task)
 			terminal_printf("%c", code);
 	}
 
-
 	APIC_WRITE(APIC_OFFSET_EOI, 0); // send EOI
 
 	task_run(task);

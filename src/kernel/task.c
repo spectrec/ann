@@ -282,7 +282,8 @@ void schedule(void)
 		uint32_t idx = (i + j) % TASK_MAX_CNT;
 
 		if (tasks[idx].state != TASK_STATE_READY) {
-			assert(tasks[idx].state == TASK_STATE_FREE);
+			// We use only one processor, so only one task may in `RUN' state
+			assert(tasks[idx].state != TASK_STATE_RUN);
 			continue;
 		}
 

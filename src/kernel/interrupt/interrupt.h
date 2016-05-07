@@ -32,6 +32,7 @@
 
 #ifndef __ASSEMBLER__
 void interrupt_init(void);
+void interrupt_enable(void);
 #endif
 
 #endif

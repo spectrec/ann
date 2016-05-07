@@ -88,11 +88,11 @@ void page_fault_handler(struct task *task)
 	uintptr_t va = rcr2();
 	pte_t *pte;
 
-	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_R_W) == 0)
+	page_lookup(task->pml4, va, &pte); // to initialize `pte'
+	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_R_W) == 0 || pte == NULL)
 		// non write error
 		goto fail;
 
-	page_lookup(task->pml4, va, &pte);
 	if ((*pte & PTE_COW) != 0) {
 		unsigned perm = *pte & PTE_FLAGS_MASK;
 		struct page *new = page_alloc();
@@ -117,7 +117,7 @@ fail:
 	terminal_printf("Page fault at `%lx', opration: %s, accessed by: %s\n", va,
 			(task->context.error_code & PAGE_FAULT_ERROR_CODE_R_W) != 0 ? "write" : "read",
 			(task->context.error_code & PAGE_FAULT_ERROR_CODE_U_S) != 0 ? "user" : "supervisor");
-	if ((*pte & PTE_COW) != 0)
+	if (pte != NULL && (*pte & PTE_COW) != 0)
 		terminal_printf("\tpage is copy on write\n");
 	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_P) == 0)
 		terminal_printf("\tpage is not present\n");
@@ -137,13 +137,17 @@ void interrupt_handler(struct task_context ctx)
 	// XXX: Interrups are disabled here, think twice before enable it,
 	// because they can modify `cpu' value (it may cause a lot of problems)
 	cpu->task->context = ctx;
-	if (cpu->task != &cpu->self_task)
-		cpu->task->state = TASK_STATE_READY;
+	cpu->task->state = TASK_STATE_READY;
 
 	switch (ctx.interrupt_number) {
-	case INTERRUPT_VECTOR_BREAKPOINT:
-		terminal_printf("breakpoint\n");
-		return task_run(cpu->task);
+	case INTERRUPT_VECTOR_BREAKPOINT: {
+		// Used to update task context
+		if ((ctx.cs & GDT_DPL_U) != 0)
+			return task_run(cpu->task);
+
+		// Kernel thread task switch
+		return schedule();
+	}
 	case INTERRUPT_VECTOR_PAGE_FAULT:
 		return page_fault_handler(cpu->task);
 	case INTERRUPT_VECTOR_DIV_BY_ZERO:
@@ -247,7 +251,7 @@ void interrupt_init(void)
 	idt[INTERRUPT_VECTOR_DIV_BY_ZERO] = INTERRUPT_GATE(GD_KT, interrupt_handler_div_by_zero, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_DEBUG] = INTERRUPT_GATE(GD_KT, interrupt_handler_debug, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_NMI] = INTERRUPT_GATE(GD_KT, interrupt_handler_nmi, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_BREAKPOINT] = INTERRUPT_GATE(GD_KT, interrupt_handler_breakpoint, 0, IDT_DPL_U);
+	idt[INTERRUPT_VECTOR_BREAKPOINT] = INTERRUPT_GATE(GD_KT, interrupt_handler_breakpoint, 1, IDT_DPL_U);
 	idt[INTERRUPT_VECTOR_OVERFLOW] = INTERRUPT_GATE(GD_KT, interrupt_handler_overflow, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_BOUND_RANGE] = INTERRUPT_GATE(GD_KT, interrupt_handler_bound_range, 0, IDT_DPL_S);
 	idt[INTERRUPT_VECTOR_IVALID_OPCODE] = INTERRUPT_GATE(GD_KT, interrupt_handler_ivalid_opcode, 0, IDT_DPL_S);
@@ -265,8 +269,8 @@ void interrupt_init(void)
 	idt[INTERRUPT_VECTOR_SECURITY_EXCEPTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_security_exception, 0, IDT_DPL_S);
 
 	// hardware interrups
-	idt[INTERRUPT_VECTOR_TIMER] = INTERRUPT_GATE(GD_KT, interrupt_handler_timer, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_KEYBOARD] = INTERRUPT_GATE(GD_KT, interrupt_handler_keyboard, 0, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_TIMER] = INTERRUPT_GATE(GD_KT, interrupt_handler_timer, 1, IDT_DPL_S);
+	idt[INTERRUPT_VECTOR_KEYBOARD] = INTERRUPT_GATE(GD_KT, interrupt_handler_keyboard, 1, IDT_DPL_S);
 
 	// software interrupts
 	idt[INTERRUPT_VECTOR_SYSCALL] = INTERRUPT_GATE(GD_KT, interrupt_handler_syscall, 0, IDT_DPL_U);
@@ -291,27 +295,40 @@ void interrupt_init(void)
 			panic("can't map stack for interrupt handler");
 	}
 
+	// Prepare stack for exceptions
+	for (uintptr_t addr = EXCEPTION_STACK_TOP - EXCEPTION_STACK_SIZE;
+	     addr < EXCEPTION_STACK_TOP; addr += PAGE_SIZE) {
+		struct page *page;
+
+		if ((page = page_alloc()) == NULL)
+			panic("not enough memory for interrup handler stack");
+		if (page_insert(cpu->pml4, page, addr, PTE_W) != 0)
+			panic("can't map stack for interrupt handler");
+	}
+
 	// For now this os support only one processor, so we must initialize
 	// only one tss. If you want use more processors -- you should
 	// initialize tss for each one.
-	tss[0].rsp0 = INTERRUPT_STACK_TOP;
+	tss[0].rsp0 = EXCEPTION_STACK_TOP;
+	tss[0].ist1 = INTERRUPT_STACK_TOP;
+	tss[0].ist2 = EXCEPTION_STACK_TOP;
 	ltr(GD_TSS);
 
 	// We are going to use IO APIC, so we must disable PIC.
 	outb(PIC1_DATA, 0xff);
 	outb(PIC2_DATA, 0xff);
 
-	// First of all - enable apic
 	apic_enable();
 
 	if (ioapic_init() != 0)
 		panic("ioapic_init failed");
+}
 
+void interrupt_enable(void)
+{
 	if (keyboard_init() != 0)
 		panic("keyboard_init failed");
 
 	if (timer_init() != 0)
 		panic("timer_init failed");
-
-	asm volatile("int3");
 }

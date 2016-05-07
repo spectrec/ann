@@ -68,6 +68,10 @@ void terminal_put_color(uint8_t ch, uint8_t color)
 
 void terminal_put(uint8_t ch)
 {
+	// Disable interrupts, because `terminal_put_color'
+	// is not reenterant. Interrupts will be enabled on task switch.
+	asm volatile ("cli");
+
 	terminal_put_color(ch, terminal_color);
 }
 
