@@ -68,6 +68,7 @@ struct task {
 	enum task_state state;
 
 	task_id_t id;
+	char name[64];
 
 	LIST_ENTRY(task) free_link;
 
@@ -77,7 +78,10 @@ struct task {
 
 void task_init(void);
 
-struct task *task_new(void);
+void task_list(void);
+void task_kill(task_id_t id);
+
+struct task *task_new(const char *name);
 void task_destroy(struct task *task);
 int task_create(const char *name, uint8_t *binary, size_t size);
 

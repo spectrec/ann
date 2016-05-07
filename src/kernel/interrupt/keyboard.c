@@ -1,10 +1,12 @@
 #include <stdbool.h>
 
 #include "stdlib/assert.h"
+
 #include "kernel/lib/console/terminal.h"
 
 #include "kernel/asm.h"
 #include "kernel/task.h"
+#include "kernel/monitor.h"
 #include "kernel/interrupt/apic.h"
 #include "kernel/interrupt/keyboard.h"
 
@@ -105,29 +107,6 @@ int keyboard_init(void)
 	return 0;
 }
 
-enum special_key {
-	KEY_ESCAPE	= 0x1,
-	KEY_BACKSPACE	= 0xE,
-	KEY_LEFT_CTRL	= 0x1d,
-	KEY_LEFT_SHIFT	= 0x2a,
-	KEY_RIGHT_SHIFT	= 0x36,
-	KEY_LEFT_ALT	= 0x38,
-	KEY_CAPSLOCK	= 0x3a,
-};
-static const char scancodes[128] = {
-	0, 0 /* escape */, '1', '2', '3', '4', '5',
-	'6', '7', '8', '9', '0', '-', '=',
-	0 /* backspace */, '\t', 'q', 'w', 'e', 'r',
-	't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
-	0 /*left control*/, 'a', 's', 'd', 'f', 'g',
-	'h', 'j', 'k', 'l', ';', '\'', '`', 0 /*left shift*/,
-	'\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.',
-	'/', 0 /*right shift*/, '*', 0 /*left alt*/, ' ',
-	0 /*caps lock*/, 0 /*f1*/, 0 /*f2*/, 0 /*f3*/, 0 /*f4*/,
-	0 /*f5*/, 0 /*f6*/, 0 /*f7*/, 0 /*f8*/, 0 /*f9*/, 0 /*f10*/,
-	0 /*num lock*/, 0 /*scroll lock*/
-};
-
 #define KEYBOARD_KEY_RELEASED	0x80
 void keyboard_handler(struct task *task)
 {
@@ -138,13 +117,13 @@ void keyboard_handler(struct task *task)
 	if ((scancode & KEYBOARD_KEY_RELEASED) != 0) {
 		/* key relesed */
 	} else {
-		uint8_t code = scancodes[scancode];
-
-		if (code != 0)
-			terminal_printf("%c", code);
+		monitor_process_key_press(scancode);
 	}
 
 	APIC_WRITE(APIC_OFFSET_EOI, 0); // send EOI
 
-	task_run(task);
+	if (task->state == TASK_STATE_READY)
+		task_run(task);
+
+	schedule();
 }

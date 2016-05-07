@@ -27,6 +27,11 @@ enum terminal_color {
 	TERMINAL_COLOR_WHITE		= 15,
 };
 
+struct terminal_position {
+	uint8_t row;
+	uint8_t column;
+};
+
 uint8_t terminal_make_color(enum terminal_color fg, enum terminal_color bg);
 
 void terminal_put_color(uint8_t ch, uint8_t color);
@@ -34,7 +39,16 @@ void terminal_vprintf(const char *fmt, va_list ap);
 void terminal_printf(const char *fmt, ...);
 void terminal_put(uint8_t ch);
 
+struct terminal_position terminal_position(void);
+void terminal_set_position(struct terminal_position p);
+
 void terminal_clear(void);
 void terminal_init(void);
+
+const char *terminal_read_command(uint8_t off);
+void terminal_clear_line(void);
+
+#define TERMINAL_ROW_COUNT	24
+#define TERMINAL_COL_COUNT	80
 
 #endif

@@ -25,6 +25,7 @@ kernel_sources = kernel.c \
 		 cpu.c \
 		 task.c \
 		 thread.c \
+		 monitor.c \
 		 interrupt/interrupt.c \
 		 interrupt/timer.c \
 		 interrupt/keyboard.c

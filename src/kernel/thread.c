@@ -25,22 +25,22 @@ static void thread_foo(struct task *thread, thread_func_t foo, void *arg)
 }
 
 // Don't override stack (don't use large `data')
-struct task *thread_create(thread_func_t foo, const uint8_t *data, size_t size)
+struct task *thread_create(const char *name, thread_func_t foo, const uint8_t *data, size_t size)
 {
 	struct page *stack;
 	struct task *task;
 
-	if ((task = task_new()) == NULL)
+	if ((task = task_new(name)) == NULL)
 		goto cleanup;
 
 	if ((stack = page_alloc()) == NULL) {
-		terminal_printf("Can't create thread: no memory for stack\n");
+		terminal_printf("Can't create thread `%s': no memory for stack\n", name);
 		goto cleanup;
 	}
 	// I use `USER_*' constants here just because I don't want to create
 	// separete ones for threads.
 	if (page_insert(task->pml4, stack, USER_STACK_TOP-PAGE_SIZE, PTE_U | PTE_W) != 0) {
-		terminal_printf("Can't create thread: page_insert(stack) failed\n");
+		terminal_printf("Can't create thread `%s': page_insert(stack) failed\n", name);
 		goto cleanup;
 	}
 

@@ -4,9 +4,6 @@
 #include "kernel/lib/memory/layout.h"
 #include "kernel/lib/console/terminal.h"
 
-#define TERMINAL_ROW_COUNT	25
-#define TERMINAL_COL_COUNT	80
-
 #define TERMINAL_ROW_SIZE (TERMINAL_COL_COUNT * sizeof(uint16_t))
 #define TERMINAL_ROW(i_) (&terminal_buffer[(i_) * TERMINAL_COL_COUNT])
 
@@ -14,6 +11,51 @@ static uint16_t *terminal_buffer;
 static uint8_t terminal_color;
 static size_t terminal_column;
 static size_t terminal_row;
+
+struct terminal_position terminal_position(void)
+{
+	return (struct terminal_position) {
+		.row = terminal_row,
+		.column = terminal_column,
+	};
+}
+
+void terminal_set_position(struct terminal_position p)
+{
+	assert(p.row <= TERMINAL_ROW_COUNT);
+	terminal_row = p.row;
+
+	assert(p.column < TERMINAL_COL_COUNT);
+	terminal_column = p.column;
+}
+
+void terminal_clear_line(void)
+{
+	memset(TERMINAL_ROW(terminal_row), 0, TERMINAL_ROW_SIZE);
+	terminal_column = 0;
+}
+
+const char *terminal_read_command(uint8_t off)
+{
+	static char buffer[TERMINAL_COL_COUNT];
+	uint8_t len = 0;
+
+	memset(buffer, sizeof(buffer), '\0');
+	for (uint8_t i = off; i < TERMINAL_COL_COUNT; i++) {
+		size_t index = terminal_row*TERMINAL_COL_COUNT + i;
+
+		if (buffer[0] == '\0' && terminal_buffer[index] == ' ')
+			continue;
+
+		buffer[len++] = terminal_buffer[index];
+	}
+
+	while (len > 0 && buffer[len-1] == ' ') {
+		buffer[--len] = '\0';
+	}
+
+	return buffer;
+}
 
 static uint16_t terminal_make_char(uint8_t ch, uint8_t color)
 {
@@ -40,8 +82,11 @@ void terminal_put_color(uint8_t ch, uint8_t color)
 		terminal_column = 0;
 		return;
 	case '\n':
+		assert(terminal_row < TERMINAL_ROW_COUNT);
+
 		terminal_column = 0;
 		terminal_row++;
+
 		break;
 	default:
 		terminal_buffer[index] = terminal_make_char(ch, color);
@@ -55,12 +100,12 @@ void terminal_put_color(uint8_t ch, uint8_t color)
 	}
 
 	assert(terminal_row <= TERMINAL_ROW_COUNT);
-	if (terminal_row == TERMINAL_ROW_COUNT) {
-		for (uint8_t i = 0; i < TERMINAL_ROW_COUNT-1; i++)
+	if (terminal_row == TERMINAL_ROW_COUNT-1) {
+		for (uint8_t i = 0; i < terminal_row-1; i++)
 			memcpy(TERMINAL_ROW(i), TERMINAL_ROW(i+1), TERMINAL_ROW_SIZE);
 
-		terminal_row = TERMINAL_ROW_COUNT - 1;
-		memset(TERMINAL_ROW(terminal_row), 0, TERMINAL_ROW_SIZE);
+		memset(TERMINAL_ROW(terminal_row-1), 0, TERMINAL_ROW_SIZE);
+		terminal_row = terminal_row - 1;
 
 		assert(terminal_column == 0);
 	}

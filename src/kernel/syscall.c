@@ -34,7 +34,7 @@ static int task_share_page(struct task *dest, struct task *src, void *va, unsign
 
 static int sys_fork(struct task *task)
 {
-	struct task *child = task_new();
+	struct task *child = task_new("child");
 
 	if (child == NULL)
 		return -1;

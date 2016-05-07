@@ -27,3 +27,46 @@ void *memcpy(void *dest, const void *src, size_t n)
 
 	return dest;
 }
+
+int strcmp(const char *s1, const char *s2)
+{
+	int r;
+
+	while ((r = *s1 - *s2) == 0 && *s1 != '\0') {
+		s1++, s2++;
+	}
+
+	return r;
+}
+
+int strncmp(const char *s1, const char *s2, size_t n)
+{
+	for (size_t i = 0; i < n; i++) {
+		int r = *s1 - *s2;
+
+		if (r != 0)
+			return r;
+
+		if (*s1 == '\0')
+			return 0;
+
+		s1++, s2++;
+	}
+
+	return 0;
+}
+
+char *strncpy(char *dest, const char *src, size_t n)
+{
+	for (size_t i = 0; i < n; i++) {
+		dest[i] = src[i];
+
+		if (src[i] == '\0')
+			break;
+	}
+
+	// just in case
+	dest[n-1] = '\0';
+
+	return dest;
+}

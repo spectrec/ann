@@ -9,6 +9,7 @@
 #include "kernel/cpu.h"
 #include "kernel/task.h"
 #include "kernel/thread.h"
+#include "kernel/monitor.h"
 #include "kernel/loader/config.h"
 #include "kernel/interrupt/interrupt.h"
 
@@ -115,6 +116,9 @@ void kernel_main(void)
 	// Reset terminal
 	terminal_init();
 
+	// show command line
+	monitor_init();
+
 	// Initialize memory (process info prepared by loader)
 	kernel_init_mmap();
 
@@ -126,8 +130,9 @@ void kernel_main(void)
 
 	TASK_STATIC_INITIALIZER(hello);
 	TASK_STATIC_INITIALIZER(fork);
+	TASK_STATIC_INITIALIZER(spin);
 
-	struct task *thread = thread_create(kernel_thread, NULL, 0);
+	struct task *thread = thread_create("scheduler", kernel_thread, NULL, 0);
 	if (thread == NULL)
 		panic("can't create kernel thread");
 	thread_run(thread);

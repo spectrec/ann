@@ -1,4 +1,4 @@
-stdlib_sources = string.c
+stdlib_sources = string.c stdlib.c
 
 STDLIB_BUILDDIR := ${STDLIB_DIR}/${STDLIB_ARCH}
 stdlib_objects := $(patsubst %.c, ${STDLIB_BUILDDIR}/%.o, ${stdlib_sources})

@@ -31,7 +31,39 @@ void task_init(void)
 	memset(cpu->task, 0, sizeof(*cpu->task));
 }
 
-struct task *task_new(void)
+void task_list(void)
+{
+	terminal_printf("task_id        name           owner\n");
+	for (uint32_t i = 0; i < TASK_MAX_CNT; i++) {
+		if (tasks[i].state != TASK_STATE_RUN &&
+		    tasks[i].state != TASK_STATE_READY)
+			continue;
+
+		terminal_printf("  %d         %s          %s\n", tasks[i].id, tasks[i].name,
+				(tasks[i].context.cs & GDT_DPL_U) == 0 ? "kernel" : "user");
+	}
+}
+
+void task_kill(task_id_t task_id)
+{
+	for (uint32_t i = 0; i < TASK_MAX_CNT; i++) {
+		if (tasks[i].state != TASK_STATE_RUN &&
+		    tasks[i].state != TASK_STATE_READY)
+			continue;
+
+		if (tasks[i].id != task_id)
+			continue;
+
+		if ((tasks[i].context.cs & GDT_DPL_U) == 0)
+			return terminal_printf("error: killing kernel tasks is forbidden\n");
+
+		return task_destroy(&tasks[i]);
+	}
+
+	terminal_printf("Can't kill task `%d': no such task\n", task_id);
+}
+
+struct task *task_new(const char *name)
 {
 	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
 	pml4e_t *kernel_pml4 = config->pml4.ptr;
@@ -40,18 +72,20 @@ struct task *task_new(void)
 
 	task = LIST_FIRST(&free_tasks);
 	if (task == NULL) {
-		terminal_printf("No more free tasks\n");
+		terminal_printf("Can't create task `%s': no more free tasks\n", name);
 		return NULL;
 	}
 
 	LIST_REMOVE(task, free_link);
 	memset(task, 0, sizeof(*task));
 
+	strncpy(task->name, name, sizeof(task->name));
+
 	task->id = ++last_task_id;
 	task->state = TASK_STATE_DONT_RUN;
 
 	if ((pml4_page = page_alloc()) == NULL) {
-		terminal_printf("Can't create new task: no memory for new pml4\n");
+		terminal_printf("Can't create task `%s': no memory for new pml4\n", name);
 		return NULL;
 	}
 	page_incref(pml4_page);
@@ -204,7 +238,7 @@ int task_create(const char *name, uint8_t *binary, size_t size)
 	struct page *stack;
 	struct task *task;
 
-	if ((task = task_new()) == NULL)
+	if ((task = task_new(name)) == NULL)
 		return -1;
 
 	if (task_load(task, name, binary, size) != 0)
