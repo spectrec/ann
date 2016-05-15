@@ -12,6 +12,7 @@ PDF=rpz.pdf
 DIA=graphics/dia
 DOT=graphics/dot
 SVG=graphics/svg
+PNG=graphics/png
 GNUPLOT=graphics/gnuplot
 TEX=tex
 DEPS=.deps
@@ -57,6 +58,10 @@ $(INC)/gnuplot/%.pdf: $(GNUPLOT)/%.gp
 $(INC)/dot/%.eps: $(DOT)/%.dot
 	mkdir -p $(INC)/dot
 	dot -Teps $< > $@
+
+$(INC)/png/%.png : $(PNG)/%.png
+	mkdir -p $(INC)/png/
+	cp $< $@
 
 $(INC)/svg/%.pdf : $(SVG)/%.svg
 	mkdir -p $(INC)/svg/

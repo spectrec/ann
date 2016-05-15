@@ -211,8 +211,10 @@ sub get_direct_depend {
     }
 
     if (m#\\(input|include)\b\{?([/-\w\d.]+)#) {
-       $p = $2;		
-      $p .= '.tex' unless $p =~ /\.tex$/;
+	$p = $2;
+
+	next if $p =~ m{^inc/png/};
+	$p .= '.tex' unless $p =~ /\.tex$/;
 		if ($opt_expand) {
 			$fullname = &find_on_path($ENV{"$TEXINPUTS"}, $p, 'tex');
 			if ($fullname ne "" && -r $fullname) {
