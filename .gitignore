@@ -40,3 +40,4 @@ tags
 *.blg
 *.bbl
 .deps
+doc/tex/inc/*
