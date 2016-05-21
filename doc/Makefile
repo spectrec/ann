@@ -52,7 +52,9 @@ $(INC)/dia/%.eps: $(DIA)/%.dia
 
 $(INC)/gnuplot/%.pdf: $(GNUPLOT)/%.gp
 	mkdir -p $(@D)
-	gnuplot $< && mv $(@F) $(@D)
+	gnuplot $<
+	sleep 1
+	mv $(@F) $(@D)
 
 # .dot -> .eps (via dot2tex)
 $(INC)/dot/%.eps: $(DOT)/%.dot
