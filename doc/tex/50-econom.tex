@@ -70,7 +70,7 @@
 эксперта-разработчика, результаты их оценок приведены в
 таблице~\ref{tab:expert_marks}.
 
-\begin{table}
+\begin{table}[ht!]
   \centering
   \caption{Результаты экспертных оценок}
   \label{tab:expert_marks}
@@ -188,7 +188,7 @@ $D_{\textup{В}}$ и праздничных $D_{\textup{П}}$ дней.
 приведены сведения, необходимые для вычисления фонда времени для каждого
 месяца и итоговые результаты вычиселений.
 
-\begin{table}
+\begin{table}[ht!]
   \centering
   \caption{Месячный фонд времени}
   \label{tab:month_time_fond}
@@ -210,10 +210,10 @@ $D_{\textup{В}}$ и праздничных $D_{\textup{П}}$ дней.
 \end{table}
 
 Таким образом, фонд рабочего времени проекта составляет $F = 504$ часов.
-Отсюда среднюю численность исполнителей можно вычислить по формуле~\ref{equ:time_fond}:
+Отсюда среднюю численность исполнителей можно вычислить по формуле~\ref{equ:work_time_fond}:
 \begin{equation}
 	N = \frac{Q_{p}}{F} = \frac{554}{496} = 1.12
-\label{equ:time_fond}
+\label{equ:work_time_fond}
 \end{equation}
 
 Таким образом, по суммарным трудозатратам для завершения проекта в заданные
@@ -334,7 +334,7 @@ $R_{i-j}^{\textup{с}} = T_{j}^{\textup{р}} - T_{i}^{\textup{р}} - t_{i-j}$.
 показывает максимальное время, на которое можно увеличить продолжительность работы или отсрочить ее начало,
 не меняя ранних сроков начала последующих работ. Сетевой график приведен на рисунке~\ref{fig:network-graph}.
 
-\begin{figure}
+\begin{figure}[ht!]
   \centering
   \includegraphics[width=\textwidth]{inc/dia/network-graph}
   \caption{Сетевой график}
@@ -347,7 +347,7 @@ $R_{i-j}^{\textup{с}} = T_{j}^{\textup{р}} - T_{i}^{\textup{р}} - t_{i-j}$.
 этапы работ. Диаграмма Гантта приведена на рис.~\ref{fig:gantt}.
 Занятость исполнителей приведена в таблице~\ref{tab:busyness}.
 
-\begin{figure}
+\begin{figure}[ht!]
   \begin{center}
   \includegraphics[width=\textwidth]{inc/gnuplot/gantt}
   \end{center}
@@ -355,7 +355,7 @@ $R_{i-j}^{\textup{с}} = T_{j}^{\textup{р}} - T_{i}^{\textup{р}} - t_{i-j}$.
   \label{fig:gantt}
 \end{figure}
 
-\begin{table}[ht]
+\begin{table}[ht!]
   \caption{Занятость исполнителей}
   \label{tab:busyness}
 
@@ -449,7 +449,7 @@ $O_{\textup{дн}}$ - дневной оклад исполнителя.
 Расчет заработной платы представлен в таблице~\ref{tab:salary} (размер оклада приведен с учетом налога
 на доходы физических лиц). Размер заработной платы был получен на интернет-портале www.hh.ru (12.05.2016).
 
-\begin{table}[ht]
+\begin{table}[ht!]
   \centering
   \caption{Оклад исполнителей}
   \label{tab:salary}
@@ -483,7 +483,7 @@ $C_{\textup{зарп}} = C_{\textup{з.осн}} + C_{\textup{з.доп}} + C_{\t
 \subsection{Затраты на обеспечением необходимым оборудованием}
 Расчет затрат $C_{\textup{об}}$ на расходные материалы и комплектующие изделия представлен в таблице~\ref{tab:equipment}.
 
-\begin{table}
+\begin{table}[ht!]
   \centering
   \caption{Затраты на расходные материалы и оборудование}
   \label{tab:equipment}
@@ -520,7 +520,7 @@ $C_{\textup{зарп}} = C_{\textup{з.осн}} + C_{\textup{з.доп}} + C_{\t
 В ходе исследования имеющихся предложений аренды офисных помещений были найдены варианты
 размещения рабочего помещения, приведенные в таблице~\ref{tab:office}.
 
-\begin{table}[ht]
+\begin{table}[ht!]
   \centering
   \caption{Офисные помещения}
   \label{tab:office}
@@ -561,7 +561,7 @@ $C_{\textup{накл}} = 0.6 \cdot C_{\textup{з.осн}} = 0.6 \cdot 360503.85 
 Расчет суммарных затрат на реализацию программного проекта приведен в тиблице~\ref{tab:total_project_cost}.
 На рис.~\ref{fig:cost_pie_chart} приведена круговая диаграмма, отражающая структуру затрат проекта.
 
-\begin{table}[ht]
+\begin{table}[ht!]
   \centering
   \caption{Суммарные затраты на реализацию}
   \label{tab:total_project_cost}
@@ -648,7 +648,7 @@ $C_{\textup{приб}} = (\Delta{K} + K_{\textup{вн}}) \cdot D_{\textup{при
 Фрагмент таблицы общего баланса приведен в таблице~\ref{tab:common_balance}, из него видно, что
 затраты на разработку окупятся в ноябре 2016 года.
 
-\begin{table}
+\begin{table}[ht!]
   \centering
   \caption{Результаты экспертных оценок}
   \label{tab:common_balance}
