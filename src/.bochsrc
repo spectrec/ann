@@ -1,0 +1,36 @@
+# how much memory the emulated machine will have
+megs: 32
+
+# filename of ROM images
+romimage: file=$BXSHARE/BIOS-bochs-latest
+#, address=0xf0000
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+
+# Use the parallel port as an alternate console,
+# so that we can run Bochs without the GUI.
+parport1: enabled=1, file="/dev/stdout"
+
+# disk images
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, mode=flat, path="./kernel.img"
+
+# choose the boot disk.
+boot: c
+
+# where do we send log messages?
+log: bochs.log
+
+# disable the mouse
+mouse: enabled=0
+
+#debug: action=ignore
+info: action=ignore
+error: action=report
+panic: action=ask
+
+# This means that time in the emulated machine is the same as
+# realtime.  This can be scary because running the same simulation
+# twice in a row can lead to different results (because they started
+# at different times, for instance).  If you want to use non-real
+# time, then use sync=none.
+clock: sync=realtime, time0=local

@@ -106,8 +106,8 @@ complete_flush:
 
 gdt:
 	SEG(0x0, 0x0, 0x0) // null seg
-	SEG(UST_X | USF_D | USF_P | USF_S | UST_R, 0x0, 0xffffffff) // code seg
-	SEG(USF_D | USF_P | USF_S | UST_W, 0x0, 0xffffffff) // data seg
+	SEG(UST_X|USF_D|USF_P|USF_S|USF_G|UST_R, 0x0, 0xfffff) // code seg
+	SEG(USF_D|USF_P|USF_S|USF_G|UST_W, 0x0, 0xfffff) // data seg
 
 gdtdesc:
 	.word (. - gdt - 1)
