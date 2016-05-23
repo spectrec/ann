@@ -67,7 +67,7 @@ include ${KERNEL_DIR}/Makefile.part
 
 # Qemu specific
 qemu-gdb: ${IMAGE}
-	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S -enable-kvm
+	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -s -S
 
 qemu: ${IMAGE}
 	$(QEMU) -drive file=$<,index=0,media=disk,format=raw -d int,cpu_reset,unimp
