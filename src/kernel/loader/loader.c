@@ -236,20 +236,24 @@ struct descriptor *loader_init_gdt(void)
 	gdtr.limit = gdt_size - 1;
 	gdtr.zero = 0;
 
+	// XXX: according to AMD64 documentation, in 64-bit mode all most
+	// fields, like `UST_W' or `DPL' for data segment are ignored,
+	// but this is not true inside QEMU and Bochs
+
 	// Null descriptor - just in case
 	gdt[0] = SEGMENT_DESC(0, 0x0, 0x0);
 
 	// Kernel text
-	gdt[GD_KT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_S|USF_S|UST_X|UST_R, 0x0, 0xfffff);
+	gdt[GD_KT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_S|USF_S|UST_X, 0x0, 0x0);
 
-	// Kernel data (all fields, except `USF_P' are ignored)
-	gdt[GD_KD >> 3] = SEGMENT_DESC(USF_P|USF_D|USF_S|USF_G|DPL_S|UST_W, 0x0, 0xfffff);
+	// Kernel data
+	gdt[GD_KD >> 3] = SEGMENT_DESC(USF_P|USF_S|DPL_S|UST_W, 0x0, 0x0);
 
 	// User text
-	gdt[GD_UT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_U|USF_S|UST_X|UST_R, 0x0, 0xfffff);
+	gdt[GD_UT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_U|USF_S|UST_X, 0x0, 0x0);
 
-	// User data (all fields, except `USF_P' are ignored)
-	gdt[GD_UD >> 3] = SEGMENT_DESC(USF_P|USF_D|USF_S|USF_G|DPL_U|UST_W, 0x0, 0xfffff);
+	// User data
+	gdt[GD_UD >> 3] = SEGMENT_DESC(USF_P|USF_S|DPL_U|UST_W, 0x0, 0x0);
 
 	return gdt;
 }
@@ -327,11 +331,6 @@ void loader_enter_long_mode(uint64_t kernel_entry_point)
 {
 	// Reload gdt
 	asm volatile("lgdt gdtr");
-
-	// Reload segment registers
-	asm volatile("movw %%ax, %%es" :: "a" (GD_KD));
-	asm volatile("movw %%ax, %%ds" :: "a" (GD_KD));
-	asm volatile("movw %%ax, %%ss" :: "a" (GD_KD));
 
 	// Enable PAE
 	asm volatile(

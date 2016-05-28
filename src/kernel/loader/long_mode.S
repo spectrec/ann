@@ -14,9 +14,15 @@ entry_long_mode_asm:
 	popl %edx
 
 	// Reload cs, to switch from compatible mode into long mode
-	ljmp $GD_KT, $long_mode
+	ljmp $GD_KT, $reload_decriptors
 
 .code64
+reload_decriptors:
+	movw $GD_KD, %bx
+	movw %bx, %ds
+	movw %bx, %es
+	movw %bx, %ss
+
 long_mode:
 	cmpl $0, %eax
 	je enter_kernel
