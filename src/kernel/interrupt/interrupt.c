@@ -103,12 +103,12 @@ void page_fault_handler(struct task *task)
 			terminal_printf("page_fault_handler: can't allocate page\n");
 			goto fail;
 		}
-		if (page_insert(task->pml4, new, USER_TEMP, perm | PTE_W) != 0)
+		if (page_insert(task->pml4, new, KERNEL_TEMP, perm | PTE_W) != 0)
 			goto fail;
-		memcpy((void *)USER_TEMP, (void *)ROUND_DOWN(va, PAGE_SIZE), PAGE_SIZE);
+		memcpy((void *)KERNEL_TEMP, (void *)ROUND_DOWN(va, PAGE_SIZE), PAGE_SIZE);
 		if (page_insert(task->pml4, new, ROUND_DOWN(va, PAGE_SIZE), (*pte & PTE_FLAGS_MASK) | PTE_W) != 0)
 			goto fail;
-		page_remove(task->pml4, USER_TEMP);
+		page_remove(task->pml4, KERNEL_TEMP);
 
 		task_run(task);
 	}

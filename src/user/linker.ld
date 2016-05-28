@@ -2,8 +2,7 @@ ENTRY(user_entry)
 
 SECTIONS
 {
-	/* Start from 1MB */
-	. = 0x800020;
+	. = 0x800000;
 
 	.text BLOCK(4K) : ALIGN(4K)
 	{

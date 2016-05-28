@@ -27,6 +27,11 @@
 #define EXCEPTION_STACK_SIZE	(PAGE_SIZE * 2)
 #define EXCEPTION_STACK_TOP	(INTERRUPT_STACK_TOP - INTERRUPT_STACK_SIZE)
 
+// It is good idea to make at least one temporary page for each
+// processor. But for now we use only one procesor, so one page
+// should be enough.
+#define KERNLE_TEMP_PAGE_CNT	(1)
+#define KERNEL_TEMP		(EXCEPTION_STACK_TOP - EXCEPTION_STACK_SIZE - KERNLE_TEMP_PAGE_CNT*PAGE_SIZE)
 
 // Physical address of the APIC base
 #define APIC_BASE_PA	0xFEE00000
@@ -34,7 +39,6 @@
 #define IOAPIC_BASE_PA	0xFEC00000
 
 #define USER_TOP	0x0000010000000000	// 1 TB
-#define USER_TEMP	0x0000000100000000
-#define USER_STACK_TOP	0x000000000a000000
+#define USER_STACK_TOP	0x0000000a00000000
 
 #endif
