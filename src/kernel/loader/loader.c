@@ -240,16 +240,16 @@ struct descriptor *loader_init_gdt(void)
 	gdt[0] = SEGMENT_DESC(0, 0x0, 0x0);
 
 	// Kernel text
-	gdt[GD_KT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_S|USF_S|UST_X|UST_R, 0x0, 0xffffffff);
+	gdt[GD_KT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_S|USF_S|UST_X|UST_R, 0x0, 0xfffff);
 
 	// Kernel data (all fields, except `USF_P' are ignored)
-	gdt[GD_KD >> 3] = SEGMENT_DESC(USF_P|USF_D|USF_S|USF_G|DPL_S|UST_W, 0x0, 0xffffffff);
+	gdt[GD_KD >> 3] = SEGMENT_DESC(USF_P|USF_D|USF_S|USF_G|DPL_S|UST_W, 0x0, 0xfffff);
 
 	// User text
-	gdt[GD_UT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_U|USF_S|UST_X|UST_R, 0x0, 0xffffffff);
+	gdt[GD_UT >> 3] = SEGMENT_DESC(USF_L|USF_P|DPL_U|USF_S|UST_X|UST_R, 0x0, 0xfffff);
 
 	// User data (all fields, except `USF_P' are ignored)
-	gdt[GD_UD >> 3] = SEGMENT_DESC(USF_P|USF_D|USF_S|USF_G|DPL_U|UST_W, 0x0, 0xffffffff);
+	gdt[GD_UD >> 3] = SEGMENT_DESC(USF_P|USF_D|USF_S|USF_G|DPL_U|UST_W, 0x0, 0xfffff);
 
 	return gdt;
 }

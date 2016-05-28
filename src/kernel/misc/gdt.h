@@ -161,8 +161,8 @@ struct descriptor64 {
 
 #define GD_KT	(0x0008)
 #define GD_KD	(0x0010)
-#define GD_UD	(0x0018)
-#define GD_UT	(0x0020)
+#define GD_UT	(0x0018)
+#define GD_UD	(0x0020)
 
 // TSS descriptors are 128bit long.
 #define GD_TSS	(0x0028)

@@ -311,7 +311,6 @@ void interrupt_init(void)
 	// initialize tss for each one.
 	tss[0].rsp0 = EXCEPTION_STACK_TOP;
 	tss[0].ist1 = INTERRUPT_STACK_TOP;
-	tss[0].ist2 = EXCEPTION_STACK_TOP;
 	ltr(GD_TSS);
 
 	// We are going to use IO APIC, so we must disable PIC.
