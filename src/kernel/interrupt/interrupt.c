@@ -281,7 +281,7 @@ void interrupt_init(void)
 	// Initialize tss
 	for (uint32_t idx = (GD_TSS >> 3), j = 0; j < CPU_MAX_CNT; idx += 2, j++) {
 		struct descriptor64 *gdt64_entry = (struct descriptor64 *)&gdt[idx];
-		*gdt64_entry = SEGMENT_TSS(&tss[j], sizeof(tss[j]), TYPE_AVAILABLE_TSS, TSS_DPL_S);
+		*gdt64_entry = SEGMENT_TSS(&tss[j], sizeof(tss[j])-1, TYPE_AVAILABLE_TSS, TSS_DPL_S);
 	}
 
 	// Prepare stack for interrupts
