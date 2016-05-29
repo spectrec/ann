@@ -325,9 +325,6 @@ void interrupt_init(void)
 
 void interrupt_enable(void)
 {
-	if (keyboard_init() != 0)
-		panic("keyboard_init failed");
-
 	if (timer_init() != 0)
 		panic("timer_init failed");
 }
