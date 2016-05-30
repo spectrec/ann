@@ -20,6 +20,10 @@
 -- в виде отдельных модулей или в виде ассемблерных вставок в функции на
 языке C.
 
+Разработка и отладка ядра производилась с использованием системы Gentoo 2.2 (ядро
+GNU Linux 4.1.15). Для сборки ядра использовались: GNU Make 4.1, gcc 4.9.3, GNU
+Binutils 2.25, GNU Perl 5.20.2, GNU gdb 7.10.1.
+
 \section{Тестовое окружение}
 Разработка операционной системы является практически бесполезным упражнением,
 если нет возможности запустить ее и проверить работу только что внесенных
@@ -75,29 +79,470 @@ Bochs -- это эмулятор платформы x86. Имеет следую
 было принято решение использовать оба.
 
 \section{Организация исходных кодов}
-просто описание иерархии, что где должно лежать
+Исходные файлы ОС разделены по следующим каталогам:
+\begin{itemize}
+\item \textbf{user} -- файлы режима пользователя.
+\item \textbf{stdlib} -- файлы стандартной библиотеки, общей для ядра и прикладных программ.
+\item \textbf{stdlib/i386} -- место размещения файлов, полученых в ходе компиляции 32-битной
+	версии библиотеки.
+\item \textbf{stdlib/x86\_64} -- место размещения файлов, полученных в ходе компиляции 64-битной
+	версии библиотеки.
+\item \textbf{kernel} -- основные файлы ядра ОС.
+\item \textbf{kernel/boot} -- файлы первого загрузчика ОС.
+\item \textbf{kernel/loader} -- файлы второго загрузчика ОС.
+\item \textbf{kernel/interrupt} -- файлы, связанные с обработкой прерываний.
+\item \textbf{kernel/lib/console} -- файлы, связанные с выводом на экран.
+\item \textbf{kernel/lib/disk} -- файлы, связанные с доступом к диску.
+\item \textbf{kernel/lib/memory} -- файлы, связанные с работой с памятью.
+\item \textbf{kernel/lib/i386} -- место размещения файлов, полученных в ходе компиляции 32-битной
+	версии библиотеки ядра.
+\item \textbf{kernel/lib/x86\_64} -- место размещения файлов, полученных в ходе компиляции 64-битной
+	версии библиотеки ядра.
+\item \textbf{kernel/misc} -- заголовочные файлы, не подходящие под указанные выше категории.
+\end{itemize}
 
 \section{Исполняемые форматы}
-%http://wiki.osdev.org/ELF
-%работаем в линухе, эльф - дефакто стандарт, берм его
-% что-нибудь про парсинг его рассказать, про макросы например
+В качестве формата исполняемых файлов был выбран ELF -- стандартный формат исполняемых файлов
+для большинства Unix-подобных систем. Преимуществами данного формата является то, что он хорошо
+документирован и абсолютное большинство Unix-подобных систем имеют компилятор и линковщик для
+создания ELF-файлов.
 
-\section{Система сборки}
-иерархия мейкфайлов. наверно можно пару слов сказать
-что-то надо сказать про скрипты линковщика
+Для упрощения работы с ELF-файлами были разработаны макросы: \texttt{ELF32\_PHEADER\_FIRST},
+\texttt{ELF32\_PHEADER\_FIRST}, \texttt{ELF64\_PHEADER\_FIRST} и \texttt{ELF64\_PHEADER\_FIRST}.
+Пример использования макросов для загрузки второго загрузчика ОС, показан в листинге~\ref{lst:elf_macro_example}.
 
-\section{Организация ввода/вывода}
-как общаемся с терминалом
+\begin{lstlisting}[language=C,
+caption={Пример использования макросов для работы с ELF-файлами},
+label={lst:elf_macro_example}]
+	for (struct elf32_program_header *ph = ELF32_PHEADER_FIRST(elf_header);
+	     ph < ELF32_PHEADER_LAST(elf_header); ph++) {
+		....
+	}
+\end{lstlisting}
 
-\section{Системные вызовы}
-рассмотрю общее устройство, пару конкретных, наверно можно что-нибудь расскзать про форк
+\section{Реализация загрузчика ОС}
+\subsection{Открытие вентиля линиции A20}
+Для открытия вентиля линии A20 используется контроллер клавиатуры 8042, взаимодействие с которым
+осуществляется черты порты 0x60 и 0x64. Перед отправкой команды или данных контроллеру необходимо дождаться, пока
+он не будет готов их принять. Код выполняющий ожидание готовности контроллера приведен в листинге~\ref{lst:wait_8042}.
 
-\section{Прерывания и многозадачность}
-сюда же наверно приплести пользовательские процессы
+\begin{lstlisting}[language={[x86masm]Assembler},
+caption={Ожидание готовности контроллера 8042},label={lst:wait_8042}]
+wait_8042:
+	inb $0x64, %al
+	testb $0x2, %al
+	jnz wait_8042
+	ret
+\end{lstlisting}
 
-\section{Потоки ядра}
-просто небольшая фича рассказать про реализацию. неплохо же вышло.
+Код, выполняющий открытия вентиля A20 показан в листинге~\ref{lst:enable_a20}.
+
+\begin{lstlisting}[language={[x86masm]Assembler},
+caption={Открытие вентиля линии A20},label={lst:enable_a20}]
+	// tell 8042 that we want to write
+	call wait_8042
+	movb $0xd1, %al
+	outb %al, $0x64
+
+	// enable a20
+	call wait_8042
+	movb $0xdf, %al
+	outb %al, $0x60
+\end{lstlisting}
+
+Первая группа команд сообщает контроллеру, что за ней последует операция записи.
+Вторая группа команд отправляет в порт данных значение 0xdf, что приводит к открытию
+вентиля линии A20.
+
+\subsection{Определение доступных областей физической памяти}
+Для определения доступных областей физической памяти используется функция 0xe820 прерывания 0x15 BIOS.
+Данную функцию необходимо вызывать в цикле, до тех пор пока не будут возвращены все известные области
+памяти. Подробное описание фунции приведено в ~\cite{detect_memory_bios}.
+
+\subsection{Переход в защищенный режим}
+Как было сказано в предыдущих разделах, для перехода в защищенный режим системному ПО
+необходимо объявить GDT, содержащую минимум 3 дескриптора сегмента: нелевой, дескриптор сегмента
+кода и дескриптор сегмента данных. Для объявления дескрипторов сегментов в заголовочкон файле
+\texttt{kernel/misc/gdt.h} объявлен макрос \texttt{SEG} и константы, используемые для улучшения
+читаемости кода. В листинге~\ref{lst:declare_gdt} приведен пример объявления GDT и ее дескриптора.
+
+\begin{lstlisting}[language={[x86masm]Assembler},
+caption={Объявление GDT и ее дескриптора},label={lst:declare_gdt}]
+// force 4 byte alignment
+.p2align 2
+
+gdt:
+	SEG(0x0, 0x0, 0x0) // null seg
+	SEG(UST_X|USF_D|USF_P|USF_S|USF_G|UST_R, 0x0, 0xfffff) // code seg
+	SEG(USF_D|USF_P|USF_S|USF_G|UST_W, 0x0, 0xfffff) // data seg
+
+gdtdesc:
+	.word (. - gdt - 1)
+	.long gdt
+\end{lstlisting}
+
+В листинге~\ref{lst:enter_protected_mode} приведен код, выполняющий переход в защищенный режим,
+с последующей инициализацией сегментых дескрипторов.
+\begin{lstlisting}[language={[x86masm]Assembler},
+caption={Переход в защищенный режим},label={lst:enter_protected_mode}]
+	// enable protected mode (set first bit in cr0)
+	movl %cr0, %eax
+	orl  $0x1, %eax
+	movl %eax, %cr0
+
+	lgdt gdtdesc
+	ljmp $0x8, $complete_flush
+
+.code32
+complete_flush:
+	// set up protected mode segment registers
+	movw $0x10, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	movw %ax, %ss
+\end{lstlisting}
+
+\subsection{Переход в длинный режим}
+Как было сказано в предыдущих разделах, для перехода в длинный режим, необходимо
+активировать PAE, загрузить в регистр CR3 физический адрес PML4, установить бит
+EFER.LME в 1 и включить страничное преобразование (установить бит CR.PG в 1). В
+листинге~\ref{lst:enter_long_mode} приведен фрагмент кода, выполняющего все эти действия.
+
+\begin{lstlisting}[language={[x86masm]Assembler},
+caption={Переход в длинный режим},label={lst:enter_long_mode}]
+	// Enable PAE
+	movl %cr4, %eax
+	btsl $5, %eax
+	movl %eax, %cr4
+
+	// Setup CR3
+	movl pml4, %cr3
+
+	// Enable long mode (set EFER.LME=1)
+	movl $0xc0000080, %ecx // EFER MSR number
+	rdmsr                  // Read EFER
+	btsl $8, %eax          // Set LME=1
+	wrmsr                  // Write EFER
+
+	// Enable paging to activate long mode
+	movl %cr0, %eax
+	btsl $31, %eax
+	movl %eax, %cr0
+\end{lstlisting}
+
+\subsection{Передача информации ядру}
+Для передачи информации, подготовленной загрузчиком ядру испольются структуры:
+\texttt{kernel\_ptr} и \texttt{kernel\_config}. Определение структур приведено
+в листинге~\ref{lst:kernel_config_structs}.
+
+\begin{lstlisting}[language=C,
+caption={Структуры для передачи информации ядру},
+label={lst:kernel_config_structs}]
+union kernel_ptr {
+	uint64_t uintptr;
+	void *ptr;
+};
+
+struct kernel_config {
+	union kernel_ptr pml4;
+
+	union kernel_ptr pages;
+	uint64_t pages_cnt;
+
+	union kernel_ptr gdt;
+};
+\end{lstlisting}
+
+Следует заметить, что в защищенном режиме размер указателя составляет 32 бита, а
+в 64-битном длинном режиме -- 64-бит. Обединение \texttt{kernel\_ptr} используется
+чтобы указатели в защищенном 32-битном режиме занимали 64 бита. Это позволяет
+упростить ядру интерпретацию переданных загрузчиком данных.
+
+\section{Реализация ядра ОС}
+\subsection{Прерывания и исключения}
+Как было сказано в главе~\ref{sec:exceptions_and_interrupts}, для возможности обработки
+исключений и прерываний, необходимо загрузить в IDT, содержащую дескрипторы шлюзов
+обработчиков прерываний и исключений. В листинге~\ref{lst:load_idt} приведен фрагмент кода,
+выполняющий загрузку IDT.
+
+\begin{lstlisting}[language=C,
+caption={Загрузка IDT},
+label={lst:load_idt}]
+struct idtr {
+	uint16_t limit;
+	void *base;
+} __attribute__((packed)) idtr = {
+	sizeof(idt)-1, idt
+};
+
+// Load idt
+asm volatile("lidt %0" :: "m" (idtr));
+\end{lstlisting}
+
+Для объявления точек входа в обработчики прерываний используются 2 макроса, их
+код приведен в листинге~\ref{lst:declare_interrupt_handler_entry}.
+
+\begin{lstlisting}[language=C,
+caption={Макросы для объявления точек входа в обработчики прерываний},
+label={lst:declare_interrupt_handler_entry}]
+#define interrupt_handler_no_error_code(name, num) \
+	.globl name;                               \
+	.type name, @function;                     \
+	.align 4;                                  \
+	name:                                      \
+	pushq $0; /*instead of error code*/        \
+	pushq $(num);                              \
+	jmp interrupt_handler_common
+
+#define interrupt_handler_with_error_code(name, num) \
+	.globl name;                                 \
+	.type name, @function;                       \
+	.align 4;                                    \
+	name:                                        \
+	pushq $(num);                                \
+	jmp interrupt_handler_common
+\end{lstlisting}
+
+Первый макрос используется для объявления точек входа в обработчики прерываний для
+которых процессор не добавляет в стек код ошибки. Второй -- для прерываний с кодом
+ошибки. Это позволяет использовать одну структу для представления контекста прерывания.
+
+После сохранения номера прерывания все обработчики прерываний используют общий код,
+который сохраняет в стеке контекст текущего процесса, загружает в сегментные регистры
+дескрипторы сегментов данных ядра и вызывает обработчик прерываний, написанный на
+языке Си. Код, выполняющий эти действия представлен в листинге~\ref{lst:int_handler_common}.
+
+\begin{lstlisting}[language=C,
+caption={Общий код обработчиков прерываний},
+label={lst:int_handler_common}]
+interrupt_handler_common:
+	pushq $0x0 // reserve space for segment registers
+	movw %ds, 0(%rsp)
+	movw %es, 2(%rsp)
+	movw %fs, 4(%rsp)
+	movw %gs, 6(%rsp)
+
+	// Save RONs: r15-r8, rbp-rax
+	....
+
+	pushq %rax
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	popq %rax
+
+	// Doesn't return
+	call interrupt_handler
+\end{lstlisting}
+
+Для возможности обработки прерываний необходимо активировать APIC,
+в листиге~\ref{lst:apic_enable} приведн код, который для этого предназначен.
+\begin{lstlisting}[language=C,
+caption={Активация локального APIC},
+label={lst:apic_enable}]
+// 0x1B - msr of local apic
+// bit 11 - global enable/disable APIC flag
+asm volatile(
+	"movl $0x1b, %ecx\n\t"
+	"rdmsr\n\t"
+	"btsl $11, %eax\n\t"
+	"wrmsr"
+);
+\end{lstlisting}
+
+После инициализации локального APIC необходимо настроить перенаправление прерываний (через IO APIC).
+Для этого были разработан макрос \texttt{IOAPIC\_WRITE}, который записывает в регистр, переданный
+в качестве превого параметра, значение, переданное в качестве второго параметра.
+
+В листинге~\ref{lst:ioapic_redirect} приведен фрагмент кода перенаправления прерываний от клавиатуры
+с использованием этого макроса.
+
+\begin{lstlisting}[language=C,
+caption={Настройка IOAPIC},
+label={lst:ioapic_redirect}]
+// keyboard
+IOAPIC_WRITE(IOREDTBL_BASE+2, INTERRUPT_VECTOR_KEYBOARD);
+IOAPIC_WRITE(IOREDTBL_BASE+3, local_apic_id);
+\end{lstlisting}
+
+Для возврата из обработчика прерываний используется функция \texttt{task\_run},
+которая переводит процесс в состояние \texttt{TASK\_STATE\_RUN} и восстанавливает
+контекст процесса, сохраненный обработчиком прерывания. Код данной функции
+приведен в листинге~\ref{lst:task_run}.
+
+\begin{lstlisting}[language=C,
+caption={Запуск процесса},
+label={lst:task_run}]
+void task_run(struct task *task) {
+	// Always enable interrupts
+	task->context.rflags |= RFLAGS_IF;
+	task->state = TASK_STATE_RUN;
+
+	asm volatile(
+		"movq %0, %%rsp\n\t"
+
+		// restore gprs: rax-rbp, r8-r15
+		...
+
+		// restore segment registers
+		"movw 0(%%rsp), %%ds\n\t"
+		"movw 2(%%rsp), %%es\n\t"
+		"addq $0x8, %%rsp\n\t"
+
+		// skip interrupt_number and error_code
+		"addq $0x10, %%rsp\n\t"
+
+		"iretq" : : "g"(task) : "memory"
+	);
+}
+\end{lstlisting}
+
+
+\subsection{Системные вызовы}
+Прикладные программы получают доступ к сервисам ядра используя механизм системных
+вызовов. Для выполенения системного вызова используется код приведенный в
+листинге~\ref{lst:syscall}.
+
+Как видно из листнига, для передачи номера
+системного вызова используется регистр RAX, этот же регистр используется
+для последующего возврата результата системного вызова.
+
+Параметры в системный вызов передаются через регистры RBX, RCX, RDX, RDI, RSI.
+
+\begin{lstlisting}[language=C,
+caption={Выполнение системных вызовов},
+label={lst:syscall}]
+asm volatile("int %1\n"
+	: "=a" (ret)
+	: "i" (INTERRUPT_VECTOR_SYSCALL),
+	  "a" (syscall),
+	  "b" (arg1),
+	  "c" (arg2),
+	  "d" (arg3),
+	  "D" (arg4),
+	  "S" (arg5)
+	: "cc", "memory");
+\end{lstlisting}
+
+Одной из особенностей разработанной ОС является возможность эффективного клонирования
+процессов, используя механиз копирования при записи. Клонирование процессов
+осуществляется с использование системного вызова \texttt{fork()}. Данный системный
+вызов создает новый процесс, выделяет ему PML4 и отображает в нее все страницы
+родительского процесса, причем для страниц, которые были доступны для записи сбрасывается
+бит <<W>> и устанавливается бит <<COW>> (11), означающий что страница должна быть
+скопирована при попытке записи в нее. В листинге~\ref{lst:remap_cow} приведен фрагмент кода,
+используемых для отображения страниц.
+
+\begin{lstlisting}[language=C,
+caption={Отображение страниц для реализации копирования при записи},
+label={lst:remap_cow}]
+if ((perm & PTE_W) != 0 || (perm & PTE_COW) != 0) {
+	perm = (perm | PTE_COW) & ~PTE_W;
+	if (page_insert(src->pml4, p, va_addr, perm) != 0)
+		return -1;
+	if (page_insert(dest->pml4, p, va_addr, perm) != 0)
+		return -1;
+} else {
+	if (page_insert(dest->pml4, p, va_addr, perm) != 0)
+		return -1;
+}
+\end{lstlisting}
+
+
+Когда один из процессов попытается записать данные в одну из страниц произойдет страничное
+исключение. Обработчик страничного исключения скопирует страницу и установит для нее бит <<W>>.
+Таким образом реализуется отложенное копирование страниц. В листинге~\ref{lst:page_fault_handler}
+приведен фрагмент обработчика страничного прерывания, реализующий копирование при записи.
+
+\begin{lstlisting}[language=C,
+caption={Фрагмент обработчика страничного исключения},
+label={lst:page_fault_handler}]
+if ((*pte & PTE_COW) != 0) {
+	if ((new = page_alloc()) == NULL) {
+		terminal_printf("page_fault_handler: can't allocate page\n");
+		goto fail;
+	}
+	if (page_insert(task->pml4, new, KERNEL_TEMP, (*pte & PTE_FLAGS_MASK)| PTE_W) != 0)
+		goto fail;
+	memcpy((void *)KERNEL_TEMP, (void *)ROUND_DOWN(va, PAGE_SIZE), PAGE_SIZE);
+	if (page_insert(task->pml4, new, ROUND_DOWN(va, PAGE_SIZE), (*pte & PTE_FLAGS_MASK) | PTE_W) != 0)
+		goto fail;
+	page_remove(task->pml4, KERNEL_TEMP);
+
+	task_run(task);
+}
+\end{lstlisting}
+
+
+\subsection{Потоки ядра}
+Еще одной особенностью данной ОС являются потоки ядра. Они реализованы на основе процессов, но
+выполняются в адресном пространстве ядра. Для создания потока ядра используется функция \texttt{thread\_create},
+которая позволяет задавать имя потока, главную функцию потока, аргумент, который необходимо передать в фунцию
+и его размер.
+
+Начальной функцией для всех потоков является функция \texttt{thread\_foo}, которая принимает в качестве
+параметров указатель на дескриптор потока, указатель на функцию потока и указатель на аргумент, который
+нужно передать этой функции. Код функции \texttt{thread\_foo} приведен в листинге~\ref{lst:thread_foo}.
+
+\begin{lstlisting}[language=C,
+caption={Точка входа потоков ядра},
+label={lst:thread_foo}]
+static void thread_foo(struct task *thread, thread_func_t foo, void *arg) {
+	assert(thread != NULL && foo != NULL);
+	foo(arg);
+	task_destroy(thread);
+
+	// call schedule
+	asm volatile ("int3");
+}
+\end{lstlisting}
+
+Согласно~\cite{x86_64_abi}, для передачи аргументов в функции используются регистры RDI, RSI, RDX, R10, R8, R9.
+В листинге~\ref{lst:create_arg} приведен фрагмент кода, используемый для передачи параметров в фунцию \texttt{thread\_foo}.
+
+\begin{lstlisting}[language=C,
+caption={Передача параметров в функцию \texttt{thread\_foo}},
+label={lst:create_args}]
+task->context.gprs.rdi = (uintptr_t)task;
+task->context.gprs.rsi = (uintptr_t)foo;
+task->context.gprs.rdx = (uintptr_t)data;
+\end{lstlisting}
+
+Следует заметить, что стек потока ядра находится вне виртуального адресного пространства ядра,
+поэтому из потока ядра нельзя напрямую вызвать планировщик для переключения задач. Для решения данной
+проблемы ядро использует прерывание int3, обработчик которого вызывает переключение задач.
 
 \section{Отладка}
-.gdbinit
-гдб становится плохо если в рантайме меняется набор инструкций, как это лечится.
+Для отладки ядра, в основном использовались эмулятор QEMU совместно с отладчиком GDB~\cite{gdb}.
+GDB позволяет выполнять отладку как на уровне исходных кодов, так и на уровне машинных команд,
+выводить и изменять значения переменных, регистров и произвольных участков памяти. Для упрощения
+работы с GDB в корневой директории исходных файлов ядра (\texttt{src}) находится файл \textbf{".gdbinit"},
+который содержит команды, используемые для подключения к QEMU. Среди них:
+\begin{itemize}
+	\item \texttt{qemu} -- выполняет подключение ко встроенному GDB-серверу QEMU.
+	\item \texttt{debug-loader} -- загружает отладочные символы первых двух загрузчиков.
+	\item \texttt{debug-kernel} -- загружает отладочные символы ядра.
+\end{itemize}
+
+Для запуска QEMU в режиме отладки необхоимо выполнить команду \texttt{make qemu-gdb}, в результате
+которой запустится QEMU и остановится перед выполнением первой команды, ожидая подключения GDB.
+После этого можно запустить gdb и ввести команды \texttt{qemu} и \texttt{debug-loader}. Далее необходимо
+задать точку останова, например \texttt{break *0x7c00} (точка входа первого отладчика) или \texttt{break loader\_main}
+(точка входа второго отладчика) и ввести команду \texttt{continue}. В результате GDB остановит выполнение на
+указанной точке останове, после чего можно использовать все его возможности для отладки и изучения работы ядра.
+
+Однако существует небольшая проблема связанная с переходом в длинный режим: GDB не может менять набор инструкций
+в режиме реального времени, поэтому он зависает. Для решения этой проблемы можно поступить следующим образом:
+\begin{enumerate}[1.]
+	\item В код ядра (например в функцию \texttt{kernel\_main}) добавить конструкцию вида:
+		\texttt{int a = 0; while (a == 0);}. Данная конструкция представляет собой
+		бесконечный цикл, из которого можно выйти, используя отладчик.
+	\item Запустить QEMU в режиме отладки.
+	\item Подключиться GDB к QEMU.
+	\item Ввести команды \texttt{qemu} и \texttt{continue}.
+	\item Нажать \texttt{Ctrl + C} для возврата командной строки GDB и ввести команду \texttt{debug-kernel}.
+		После этого на экране появится код ядра.
+	\item Для выхода из цикла можно воспользоваться следующей командой: \texttt{set variable \$a = 1}.
+		После этого можно продолжить отладку ядра.
+\end{enumerate}
+

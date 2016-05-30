@@ -9,7 +9,7 @@
 	.type name, @function;				\
 	.align 4;					\
 	name:						\
-	pushq $0;					\
+	pushq $0; /*instead of error code*/		\
 	pushq $(num);					\
 	jmp interrupt_handler_common
 
