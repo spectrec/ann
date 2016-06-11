@@ -91,7 +91,6 @@ struct task *task_new(const char *name)
 	page_incref(pml4_page);
 
 	task->pml4 = page2kva(pml4_page);
-	task->cr3 = PADDR(task->pml4);
 
 	// clear PML4
 	memset(task->pml4, 0, PAGE_SIZE);
@@ -162,9 +161,8 @@ void task_destroy(struct task *task)
 	// Don't destroy kernel pml4
 	assert(config->pml4.ptr != task->pml4);
 
-	page_decref(pa2page(task->cr3));
+	page_decref(pa2page(PADDR(task->pml4)));
 	task->pml4 = NULL;
-	task->cr3 = 0;
 
 	LIST_INSERT_HEAD(&free_tasks, task, free_link);
 	task->state = TASK_STATE_FREE;
@@ -210,7 +208,7 @@ static int task_load(struct task *task, const char *name, uint8_t *binary, size_
 		return -1;
 	}
 
-	lcr3(task->cr3);
+	lcr3(PADDR(task->pml4));
 	for (struct elf64_program_header *ph = ELF64_PHEADER_FIRST(elf_header);
 	     ph < ELF64_PHEADER_LAST(elf_header); ph++) {
 		if (ph->p_type != ELF_PHEADER_TYPE_LOAD)
@@ -321,8 +319,8 @@ void schedule(void)
 			continue;
 		}
 
-		if (rcr3() != tasks[idx].cr3)
-			lcr3(tasks[idx].cr3);
+		if (rcr3() != PADDR(tasks[idx].pml4))
+			lcr3(PADDR(tasks[idx].pml4));
 
 		cpu->task = &tasks[idx];
 		cpu->pml4 = cpu->task->pml4;

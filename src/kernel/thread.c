@@ -48,7 +48,7 @@ struct task *thread_create(const char *name, thread_func_t foo, const uint8_t *d
 	uint8_t *stack_top = (uint8_t *)USER_STACK_TOP;
 	{
 		uintptr_t cr3 = rcr3();
-		lcr3(task->cr3);
+		lcr3(PADDR(task->pml4));
 
 		if (data != NULL) {
 			// pointers must be ptr aligned

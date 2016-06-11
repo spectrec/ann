@@ -73,7 +73,6 @@ struct task {
 	LIST_ENTRY(task) free_link;
 
 	pml4e_t *pml4; // virtual address of pml4
-	uint64_t cr3; // physical address of pml4
 };
 
 void task_init(void);
