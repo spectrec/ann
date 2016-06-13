@@ -35,7 +35,7 @@ kernel_objects = $(patsubst %.c, ${KERNEL_DIR}/%.o, ${kernel_sources}) \
 kernel_deps = $(patsubst %.o, %.d, ${kernel_objects})
 
 ${IMAGE}: $(KERNEL) $(BOOTLOADER) $(LOADER)
-	dd if=/dev/zero of=${IMAGE} bs=1M count=10
+	dd if=/dev/zero of=${IMAGE} bs=1M count=40
 	dd if=$(BOOTLOADER) of=${IMAGE} conv=notrunc
 	dd if=$(LOADER) of=${IMAGE} seek=1 conv=notrunc
 	dd if=$(KERNEL) of=${IMAGE} bs=1M seek=1 conv=notrunc

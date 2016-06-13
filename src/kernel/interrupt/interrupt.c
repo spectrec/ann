@@ -95,14 +95,15 @@ void page_fault_handler(struct task *task)
 
 	if ((*pte & PTE_COW) != 0) {
 		unsigned perm = *pte & PTE_FLAGS_MASK;
-		struct page *new = page_alloc();
+		struct page *new;
 
 		assert((*pte & PTE_P) != 0);
-
-		if (new == NULL) {
+		if ((new = page_alloc()) == NULL) {
 			terminal_printf("page_fault_handler: can't allocate page\n");
 			goto fail;
 		}
+
+		terminal_printf("page fault: va = %p, new page: %p\n", va, new);
 		if (page_insert(task->pml4, new, KERNEL_TEMP, perm | PTE_W) != 0)
 			goto fail;
 		memcpy((void *)KERNEL_TEMP, (void *)ROUND_DOWN(va, PAGE_SIZE), PAGE_SIZE);

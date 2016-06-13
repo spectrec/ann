@@ -42,7 +42,13 @@ STDLIB64 = ${STDLIB64_DIR}/${STDLIB_NAME}
 USER_DIR = user
 USER_PROGS = ${USER_DIR}/hello.bin \
 	     ${USER_DIR}/fork.bin \
-	     ${USER_DIR}/spin.bin
+	     ${USER_DIR}/spin.bin \
+	     ${USER_DIR}/exit.bin \
+	     ${USER_DIR}/read_kernel.bin \
+	     ${USER_DIR}/read_unmap.bin \
+	     ${USER_DIR}/write_kernel.bin \
+	     ${USER_DIR}/write_unmap.bin \
+	     ${USER_DIR}/yield.bin
 
 # Kernel specific
 KERNEL_DIR = kernel

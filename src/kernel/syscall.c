@@ -29,6 +29,8 @@ static int task_share_page(struct task *dest, struct task *src, void *va, unsign
 			return -1;
 	}
 
+	terminal_printf("share page %p (va: %p): refs: %d\n", p, va, p->ref);
+
 	return 0;
 }
 

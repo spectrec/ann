@@ -128,9 +128,17 @@ void kernel_main(void)
 	// Init interrupts and exceptions.
 	interrupt_init();
 
-	TASK_STATIC_INITIALIZER(hello);
-	TASK_STATIC_INITIALIZER(fork);
+	//TASK_STATIC_INITIALIZER(hello);
+
+	//TASK_STATIC_INITIALIZER(read_kernel);
+	//TASK_STATIC_INITIALIZER(read_unmap);
+	//TASK_STATIC_INITIALIZER(write_kernel);
+	//TASK_STATIC_INITIALIZER(write_unmap);
+
+	//TASK_STATIC_INITIALIZER(yield);
+	//TASK_STATIC_INITIALIZER(fork);
 	TASK_STATIC_INITIALIZER(spin);
+	//TASK_STATIC_INITIALIZER(exit);
 
 	struct task *thread = thread_create("scheduler", kernel_thread, NULL, 0);
 	if (thread == NULL)

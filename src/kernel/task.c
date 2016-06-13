@@ -113,6 +113,14 @@ void task_destroy(struct task *task)
 	if (task == cpu->task)
 		cpu->task = NULL;
 
+	// We must be inside `task' address space. Because we use
+	// virtual address to modify page table. This is needed to
+	// avoid any problems when killing forked process.
+	uint64_t old_cr3 = rcr3();
+	if (old_cr3 != PADDR(task->pml4)) {
+		lcr3(PADDR(task->pml4));
+	}
+
 	// remove all mapped pages from current task
 	for (uint16_t i = 0; i <= PML4_IDX(USER_TOP); i++) {
 		uintptr_t pdpe_pa = PML4E_ADDR(task->pml4[i]);
@@ -155,11 +163,15 @@ void task_destroy(struct task *task)
 	}
 
 	// Reload cr3, because it may be reused after `page_decref'
-	struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
-	lcr3(PADDR(config->pml4.ptr));
+	if (old_cr3 != PADDR(task->pml4)) {
+		lcr3(old_cr3);
+	} else {
+		struct kernel_config *config = (struct kernel_config *)KERNEL_INFO;
+		lcr3(PADDR(config->pml4.ptr));
 
-	// Don't destroy kernel pml4
-	assert(config->pml4.ptr != task->pml4);
+		// Don't destroy kernel pml4
+		assert(config->pml4.ptr != task->pml4);
+	}
 
 	page_decref(pa2page(PADDR(task->pml4)));
 	task->pml4 = NULL;

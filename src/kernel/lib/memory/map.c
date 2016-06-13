@@ -5,6 +5,7 @@
 
 #include "kernel/lib/memory/map.h"
 #include "kernel/lib/memory/layout.h"
+#include "kernel/lib/console/terminal.h"
 
 // This struct is initialized by second stage loader for kernel
 static struct mmap_state *mmap_state;
@@ -44,6 +45,8 @@ void page_decref(struct page *p)
 {
 	assert(p->ref > 0);
 	p->ref--;
+
+	terminal_printf("decref page %p, refs: %d\n", p, p->ref);
 
 	if (p->ref == 0)
 		page_free(p);
