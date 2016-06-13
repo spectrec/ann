@@ -7,7 +7,6 @@ Key features:
 ------------
 * Use QEMU
 * Two stage bootloader
-* No file system (using trivial ATA interface)
 * Page address translation
 * Long mode
 * Exceptions and interrupts
@@ -17,3 +16,9 @@ Key features:
 * Copy on write
 * Preemptive multitasking
 * Interactive shell (several commands)
+
+Limitations:
+------------
+* No file system (using trivial ATA interface)
+* No SMP support
+* No IPC
