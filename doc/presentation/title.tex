@@ -1,0 +1,30 @@
+\newcommand{\TitleSlide}{
+    \addcontentsline{toc}{section}{\Title}%
+    ~\vspace{1cm}
+
+    \begin{center}
+    {\huge \begin{spacing}{1}\Title\end{spacing}}
+
+    {\SubTitle}
+    \end{center}
+    \vspace{2cm}
+
+    \begin{flushright}
+    \ifthenelse{\isundefined{\Student}}{}
+        {\small Студент: \Student\\}
+    \ifthenelse{\isundefined{\Advisor}}{}
+        {\small Руководитель: \Advisor\\}
+    \ifthenelse{\isundefined{\Person}}{}
+        {\Person\\}
+    \ifthenelse{\isundefined{\Affilation}}{}
+        {\Affilation\\}
+    \end{flushright}
+
+    \vspace{2cm}
+
+    \begin{center}
+        {\tiny Москва, 2016}
+    \end{center}
+
+    \thispagestyle{empty}
+}

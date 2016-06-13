@@ -1,0 +1,218 @@
+%%
+%% ssul.sty
+%% slides/html pages compatible
+%% Andreas Geyer-Schulz 1996 (as Simple Slides)
+%% modified by Michael Hahsler 1998, 1999, 2004, 2005 (as Simple Slides)
+%% modified by Vsevolod Krishchenko 2010 (as Slides)
+%%
+%% Redefines all section headers as \Huge\bf
+%%                                  flushleft
+%% + redefines margins
+%%
+%% This code is under GNU General Public License
+%%
+
+\typeout{Slides 0.2 `slides.sty (Slides)' <15-March-2010>.}
+
+\makeatletter
+
+\usepackage[landscape,centering,a4paper,pdftex]{geometry}
+% \usepackage[screen,centering,pdftex]{geometry}
+
+%% no margins
+%\oddsidemargin=0cm
+%\evensidemargin=0cm
+\geometry{margin=1.5cm}
+
+%% indentation
+\parindent=0pt
+\parskip=30pt plus 20pt minus 20pt
+
+
+%% color
+\usepackage[usenames]{color}
+\definecolor{Red}{rgb}{1,0,0}
+\definecolor{Blue}{rgb}{0,0,1}
+\definecolor{Green}{rgb}{0,1,0}
+
+\usepackage{ifthen}
+
+\renewcommand{\labelitemi}{\normalfont--}
+
+%% math fonts
+\usepackage{amstext}
+\usepackage{amsmath}
+
+% Межстрочные интервалы.
+\usepackage{setspace}
+
+%% hyperlinks
+\usepackage[
+% pdftitle={Kernel Hacking for Dummies},
+bookmarks=true,
+colorlinks=true, linkcolor=black, anchorcolor=black, citecolor=black, menucolor=black,filecolor=black, urlcolor=black,
+unicode=true
+]{hyperref}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+%\renewcommand{\footrulewidth}{1pt}
+\renewcommand{\headrulewidth}{0pt}
+\lhead{}
+\chead{}
+\rhead{}
+
+%\lfoot{\tiny \FooterTitle} % слева
+%\cfoot{} % цент пуст
+%\rfoot{\tiny \thepage} % справа
+
+\renewcommand{\emph}[1]{\textbf{#1}}
+
+%% define dense
+\newcommand\dense{%
+\setlength{\baselineskip}{0.9\baselineskip}%
+\setlength{\parskip}{0.6\parskip}%
+%% for lists
+\setlength{\itemsep}{0.1\itemsep}%
+}
+
+%% cancle a paragraph skip (e.g., right before a list)
+\newcommand\close{\vspace{-\parskip}}
+
+%% redefine section and subsection (always unnumbered)
+\setcounter{secnumdepth}{0}
+
+%% \@startsection {NAME}{LEVEL}{INDENT}{BEFORESKIP}{AFTERSKIP}{STYLE}
+%%            optional * [ALTHEADING]{HEADING}
+%%    Generic command to start a section.
+%%    NAME       : e.g., 'subsection'
+%%    LEVEL      : a number, denoting depth of section -- e.g., chapter=1,
+%%                 section = 2, etc.  A section number will be printed if
+%%                 and only if LEVEL < or = the value of the secnumdepth
+%%                 counter.
+%%    INDENT     : Indentation of heading from left margin
+%%    BEFORESKIP : Absolute value = skip to leave above the heading.
+%%                 If negative, then paragraph indent of text following
+%%                 heading is suppressed.
+%%    AFTERSKIP  : if positive, then skip to leave below heading,
+%%                       else - skip to leave to right of run-in heading.
+%%    STYLE      : commands to set style
+%%  If '*' missing, then increments the counter.  If it is present, then
+%%  there should be no [ALTHEADING] argument.  A sectioning command
+%%  is normally defined to \@startsection + its first six arguments.
+%%
+%% normalsize switches back in case the font size was changed on the
+%% prev. slide!
+
+%% divider slide (since this is section all other sections are pushed down the
+%% hierarchie. E.g., Section is now subsetion)
+\newcommand{\divider}{%
+\@startsection{section}{1}{0mm}{\baselineskip}{0.5\baselineskip}%
+{\clearpage\phantom{.}\vspace{0.2\textheight}\centering\Huge\bfseries}}%
+
+\renewcommand{\section}{\normalsize\@startsection{subsection}{2}{0mm}
+{\baselineskip}%
+{0.5\baselineskip}{\clearpage\centering\LARGE}}%\bfseries
+
+\renewcommand{\subsection}{\normalsize\@startsection{subsubsubsection}{3}{0mm}
+{\baselineskip}%
+{0.5\baselineskip}{\clearpage\centering\LARGE}}%\bfseries
+
+%% override the options of the .col file to get bigger fonts in latex
+\renewcommand\normalsize{%
+   \@setfontsize\normalsize{28pt}{30pt plus 10pt}%
+%   \@setfontsize\normalsize{26}{50pt plus 20pt minus 20pt}%
+   \abovedisplayskip 12\p@ \@plus3\p@ \@minus7\p@
+   \abovedisplayshortskip \z@ \@plus3\p@
+   \belowdisplayshortskip 6.5\p@ \@plus3.5\p@ \@minus3\p@
+   \belowdisplayskip \abovedisplayskip
+   \let\@listi\@listI}
+%\normalsize
+\renewcommand\small{%
+   \@setfontsize\small{24pt}{26pt plus 10pt}%
+   %\@setfontsize\small{24}{40pt plus 20pt minus 20pt}%
+   \abovedisplayskip 11\p@ \@plus3\p@ \@minus6\p@
+   \abovedisplayshortskip \z@ \@plus3\p@
+   \belowdisplayshortskip 6.5\p@ \@plus3.5\p@ \@minus3\p@
+   \def\@listi{\leftmargin\leftmargini
+               \topsep 9\p@ \@plus3\p@ \@minus5\p@
+               \parsep 4.5\p@ \@plus2\p@ \@minus\p@
+               \itemsep \parsep}%
+   \belowdisplayskip \abovedisplayskip
+}
+
+\renewcommand\footnotesize{%
+   \@setfontsize\footnotesize{20}\@xiipt
+   \abovedisplayskip 10\p@ \@plus2\p@ \@minus5\p@
+   \abovedisplayshortskip \z@ \@plus3\p@
+   \belowdisplayshortskip 6\p@ \@plus3\p@ \@minus3\p@
+   \def\@listi{\leftmargin\leftmargini
+               \topsep 6\p@ \@plus2\p@ \@minus2\p@
+               \parsep 3\p@ \@plus2\p@ \@minus\p@
+               \itemsep \parsep}%
+   \belowdisplayskip \abovedisplayskip
+}
+\renewcommand\scriptsize{\@setfontsize\scriptsize{16}{18pt}}
+\renewcommand\tiny{\@setfontsize\tiny{20}{22pt}}
+\renewcommand\large{\@setfontsize\large{32}{34pt plus 10pt}}
+\renewcommand\Large{\@setfontsize\Large{38}{40pt plus 10pt}}
+\renewcommand\LARGE{\@setfontsize\LARGE{44}{46pt plus 10pt}}
+\renewcommand\huge{\@setfontsize\huge{52}{54pt}}
+\renewcommand\Huge{\@setfontsize\Huge{58}{60pt}}
+
+
+%\renewcommand\labelitemi{\bfseries --}
+
+%% Automatic spacing for list environments taken from
+%% tweaklist.sty
+\def\enumhook{}
+\def\enumhooki{}
+\def\enumhookii{}
+\def\enumhookiii{}
+\def\enumhookiv{}
+\def\itemhook{}
+\def\itemhooki{}
+\def\itemhookii{}
+\def\itemhookiii{}
+\def\itemhookiv{}
+\def\descripthook{}
+%
+\def\enumerate{%
+  \ifnum \@enumdepth >\thr@@\@toodeep\else
+    \advance\@enumdepth\@ne
+    \edef\@enumctr{enum\romannumeral\the\@enumdepth}%
+    \expandafter
+    \list
+    \csname label\@enumctr\endcsname
+    {\usecounter\@enumctr\def\makelabel##1{\hss\llap{##1}}%
+      \enumhook \csname enumhook\romannumeral\the\@enumdepth\endcsname}%
+	\fi}
+%
+\def\itemize{%
+  \ifnum \@itemdepth >\thr@@\@toodeep\else
+    \advance\@itemdepth\@ne
+    \edef\@itemitem{labelitem\romannumeral\the\@itemdepth}%
+    \expandafter
+    \list
+    \csname\@itemitem\endcsname
+    {\partopsep0em%
+    \def\makelabel##1{\hss\llap{##1}}%
+      \itemhook \csname itemhook\romannumeral\the\@itemdepth\endcsname}%
+	\fi}
+%
+\renewenvironment{description}
+{\list{}{\labelwidth\z@ \itemindent-\leftmargin
+  \let\makelabel\descriptionlabel\descripthook}}
+{\endlist}
+
+
+\renewcommand{\enumhook}{\setlength{\topsep}{5pt plus 10pt minus 5pt}%
+  \setlength{\itemsep}{20pt plus 70pt minus 20pt}}
+
+\renewcommand{\itemhook}{\setlength{\topsep}{5pt plus 10pt minus 5pt}%
+  \setlength{\itemsep}{20pt plus 70pt minus 20pt}}
+
+\renewcommand{\descripthook}{\setlength{\topsep}{20pt plus 10pt minus 10pt}%
+  \setlength{\itemsep}{20pt plus 70pt minus 20pt}}
+
+\makeatother

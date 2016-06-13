@@ -1,0 +1,181 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english, russian]{babel}
+
+\usepackage{slides}
+
+% ШРИФТЫ
+% Нужны рубленные шрифты -- раскомментируйте стоку ниже.
+% Нужны шрифты с засечками --- закомментируйте эту строку.
+% \renewcommand{\familydefault}{\sfdefault} % Переключает на рубленный шрифт.
+% Шрифты Times и Arial, если стоит пакет cyrtimes.
+\IfFileExists{cyrtimes.sty}
+    {
+        \usepackage{cyrtimespatched}
+    }
+    {
+        % А если Times нету, то будет CM...
+    }
+
+% \renewcommand{\seriesdefault}{b} % для шрифта с засечками, это предпочтительно
+% \renewcommand{\seriesdefault}{sbc} % для рубленного шрифта
+
+\usepackage{graphicx}
+
+\def\Student{Белоус Вячеслав Сергеевич}
+\def\Advisor{Горин Сергей Викторович}
+
+% Титул
+\def\Title{Выпускная квалификационная работа \\ специалиста на тему:}
+\def\FooterTitle{}
+\def\SubTitle{Разработка учебной операционной системы}
+\input{title.tex}
+
+% Верхний заголовок: пустой
+% Нижний заголовок по-умолчанию:
+\lfoot{} % слева
+\cfoot{} % цент пуст
+\rfoot{\thepage} % справа
+
+% \renewcommand{\baselinestretch}{1.5}
+% \linespread{1.6}
+
+%% Переносы в презентации смотряся не очень.
+\hyphenpenalty 10000
+\sloppy
+
+\begin{document}
+
+\TitleSlide
+
+\section{\textbf{Цель и задачи работы}}
+
+\emph{Целью работы} является создание учебной операционной системы под архитектуру AMD64.
+
+\subsubsection{Для этого необходимо реализовать:}
+
+\begin{enumerate}
+\item Поддержку 64-битного подрежима длинного режима;
+\item Управление памятью;
+\item Управление процессами;
+\item Обработку прерываний и исключений;
+\item Обработку системных вызовов.
+\end{enumerate}
+
+
+\section{\textbf{Основные допущения и ограничения}}
+\begin{itemize}
+\item Наличие не менее 32 мегабайт доступной физической памяти;
+\item Наличие не менее 40 мегабайт доступного дискового пространства;
+\item Запуск в эмуляторе QEMU;
+\item Отсутствие многопроцессорной обработки;
+\item Отсутствие поддержки файловой системы;
+\item Запрет прерываний в ядре.
+\end{itemize}
+
+
+\section{\textbf{Загрузка ОС}}
+\subsubsection{Действия первого загрузчика:}
+\begin{enumerate}
+\item Активация линии А20;
+\item Определение доступных областей физической памяти;
+\item Переход в защищенный режим;
+\item Загрузка и передача управления второму загрузчику.
+\end{enumerate}
+
+\subsubsection{Действия второго загрузчика:}
+\begin{enumerate}
+\item Определение доступного объема физической памяти;
+\item Подготовка требуемых отображений и структур данных;
+\item Переход в длинный режим;
+\item Загрузка и передача управления ядру.
+\end{enumerate}
+
+
+\section{\textbf{Действия для перехода в длинный режим}}
+\begin{enumerate}
+\item Активация PAE (CR4.PAE=1);
+\item Создание 64-битных дескрипторов кода;
+\item Активация длинного режима (EFER.LME=1);
+\item Загрузка адреса PML4 в регистр CR3.
+\item Активация страничного преобразования (CR0.PG=1).
+\end{enumerate}
+
+
+\section{\textbf{Страничное преобразование}}
+\includegraphics[width=.9\textwidth]{pdf/long-mode-4kb-page-translation}
+
+
+\section{\textbf{Схема алгоритма создания отображения}}
+\begin{center}
+\includegraphics[scale=.35]{pdf/page-translation-schema}
+\end{center}
+
+
+\section{\textbf{Схема алгоритма поиска элемента в таблице страниц}}
+\begin{center}
+\includegraphics[scale=.3]{pdf/page-table-entry-search}
+\end{center}
+
+
+\section{\textbf{Конекст процесса}}
+\begin{center}
+\includegraphics[scale=.7]{pdf/process-context}
+\end{center}
+
+
+\section{\textbf{Дескриптор процесса}}
+\begin{itemize}
+\item Контекст процесса;
+\item Текущее состояние процесса;
+\item Идентификатор процесса;
+\item Имя процесса;
+\item Виртуальный адрес PML4.
+\end{itemize}
+
+
+\section{\textbf{Состояния процессов}}
+\begin{center}
+\includegraphics[width=.5\textwidth]{pdf/process-state-diagramm}
+\end{center}
+
+
+\section{\textbf{Системные вызовы}}
+\begin{itemize}
+\item PUTS -- вывод строки на экран;
+\item YIELD -- передача управления следующему процессу;
+\item EXIT -- уничтожение процесса;
+\item FORK -- создание копии процесса.
+\end{itemize}
+
+
+\section{\textbf{Копирование при записи}}
+\includegraphics[width=\textwidth]{pdf/fork-copy-on-write}
+
+
+\section{\textbf{Тестирование и отладка}}
+\begin{itemize}
+\item Вывод на экран;
+\item Чтение и запись данных в различные области памяти;
+\item Создание и уничтожение процессов;
+\item Добровольное освобождение процессора;
+\item Вытесняющая многозадачность.
+\end{itemize}
+
+
+\section{\textbf{Выводы}}
+В результате выплнения дипломной работы была разработана учебная ОС,
+имеющая следующие особенности:
+
+\begin{enumerate}
+\item Поддержка современной архитектуры AMD64;
+\item Двухэтапный загрузчик;
+\item Страничное управление памятью;
+\item Поддержка прикладных процессов и потоков ядра;
+\item Вытесняющая многозадачность;
+\item Поддержка механизма копирования при записи.
+\end{enumerate}
+
+\end{document}
+
