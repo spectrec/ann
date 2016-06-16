@@ -1,7 +1,10 @@
 PRESENTATION=presentation
 SPEECH=speech
 
-all: ${PRESENTATION}.pdf ${SPEECH}.pdf
+all: dia ${PRESENTATION}.pdf ${SPEECH}.pdf
+
+dia:
+	for file in dia/*.dia; do ./dia2pdf.sh $$file; done
 
 ${PRESENTATION}.pdf: ${PRESENTATION}.tex
 	pdflatex $< && pdflatex $<
@@ -12,5 +15,6 @@ ${SPEECH}.pdf: ${SPEECH}.tex
 clean:
 	rm -f *.{log,out,aux}
 	rm -f ${PRESENTATION}.pdf ${SPEECH}.pdf
+	rm -f dia/*.{eps,pdf}
 
-.PHONY: all clean
+.PHONY: all clean dia

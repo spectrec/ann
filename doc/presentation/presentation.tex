@@ -41,7 +41,7 @@
 % \renewcommand{\baselinestretch}{1.5}
 % \linespread{1.6}
 
-%% Переносы в презентации смотряся не очень.
+%% Переносы в презентации смотрятся не очень.
 \hyphenpenalty 10000
 \sloppy
 
@@ -50,17 +50,15 @@
 \TitleSlide
 
 \section{\textbf{Цель и задачи работы}}
-
 \emph{Целью работы} является создание учебной операционной системы под архитектуру AMD64.
 
-\subsubsection{Для этого необходимо реализовать:}
-
+\subsubsection{Задачи:}
 \begin{enumerate}
-\item Поддержку 64-битного подрежима длинного режима;
-\item Управление памятью;
-\item Управление процессами;
-\item Обработку прерываний и исключений;
-\item Обработку системных вызовов.
+\item Анализ архитектуры процессора AMD64 и существующих учебных ОС;
+\item Разработка структуры ОС;
+\item Разработка загрузчика ОС;
+\item Разработка модулей ядра;
+\item Определение последовательности проведения лабораторных работ.
 \end{enumerate}
 
 
@@ -74,13 +72,18 @@
 \item Запрет прерываний в ядре.
 \end{itemize}
 
+\section{\textbf{Структура ОС}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/os-structure}
+\end{center}
 
-\section{\textbf{Загрузка ОС}}
+
+\section{\textbf{Загрузчик ОС}}
 \subsubsection{Действия первого загрузчика:}
 \begin{enumerate}
-\item Активация линии А20;
+\item Открытие линии А20;
 \item Определение доступных областей физической памяти;
-\item Переход в защищенный режим;
+\item Перевод процессора в защищенный режим;
 \item Загрузка и передача управления второму загрузчику.
 \end{enumerate}
 
@@ -88,7 +91,7 @@
 \begin{enumerate}
 \item Определение доступного объема физической памяти;
 \item Подготовка требуемых отображений и структур данных;
-\item Переход в длинный режим;
+\item Перевод процессора в длинный режим;
 \item Загрузка и передача управления ядру.
 \end{enumerate}
 
@@ -103,7 +106,7 @@
 \end{enumerate}
 
 
-\section{\textbf{Страничное преобразование}}
+\section{\textbf{Управление памятью}}
 \includegraphics[width=.9\textwidth]{pdf/long-mode-4kb-page-translation}
 
 
@@ -119,20 +122,16 @@
 \end{center}
 
 
-\section{\textbf{Контекст процесса}}
+\section{\textbf{Управление процессами}}
 \begin{center}
 \includegraphics[scale=.7]{pdf/process-context}
 \end{center}
 
 
 \section{\textbf{Дескриптор процесса}}
-\begin{itemize}
-\item Контекст процесса;
-\item Текущее состояние процесса;
-\item Идентификатор процесса;
-\item Имя процесса;
-\item Виртуальный адрес PML4.
-\end{itemize}
+\begin{center}
+\includegraphics[width=.5\textwidth]{pdf/process-descriptor}
+\end{center}
 
 
 \section{\textbf{Состояния процессов}}
@@ -164,8 +163,38 @@
 \end{itemize}
 
 
+\section{\textbf{Последовательность проведения лабораторных работ}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/lab1}
+\end{center}
+
+
+\section{\textbf{Последовательность проведения лабораторных работ}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/lab2}
+\end{center}
+
+
+\section{\textbf{Последовательность проведения лабораторных работ}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/lab3}
+\end{center}
+
+
+\section{\textbf{Последовательность проведения лабораторных работ}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/lab4}
+\end{center}
+
+
+\section{\textbf{Последовательность проведения лабораторных работ}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/lab5}
+\end{center}
+
+
 \section{\textbf{Выводы}}
-В результате выполнения дипломной работы была разработана учебная ОС,
+В результате выполнения дипломной работы была разработана ОС,
 имеющая следующие особенности:
 
 \begin{enumerate}
