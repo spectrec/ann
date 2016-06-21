@@ -11,8 +11,10 @@ obj/
 src/kernel/boot/bootloader
 src/kernel/loader/loader
 src/kernel/kernel
-src/kernel/lib
-src/stdlib
+src/kernel/lib/i386
+src/kernel/lib/x86_64
+src/stdlib/i386
+src/stdlib/x86_64
 
 # Debug files
 *.debug
