@@ -1,8 +1,11 @@
 #include "user/syscall.h"
 
-void pause(void)
+#define MIDDLE	50000000
+#define LONG	100000000
+
+void pause(uint32_t period)
 {
-	for (int i = 0; i < 100000000; i++);
+	for (uint32_t i = 0; i < period; i++);
 }
 
 int main(void)
@@ -13,14 +16,17 @@ int main(void)
 		return -1;
 	}
 
-	for (int i = 0; i < 10; i++) {
+	if (pid == 0)
+		pause(MIDDLE);
+
+	for (uint32_t i = 0; i < 10; i++) {
 		if (pid == 0) {
 			sys_puts("I'am still alive (child)\n");
 		} else {
 			sys_puts("I'am still alive (parent)\n");
 		}
 
-		pause();
+		pause(LONG);
 	}
 
 	return 0;
