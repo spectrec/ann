@@ -5,6 +5,9 @@
 
 \usepackage{slides}
 
+\usepackage{makecell}
+\usepackage{diagbox}
+
 % ШРИФТЫ
 % Нужны рубленные шрифты -- раскомментируйте стоку ниже.
 % Нужны шрифты с засечками --- закомментируйте эту строку.
@@ -50,24 +53,46 @@
 \TitleSlide
 
 \section{\textbf{Цель и задачи работы}}
-\emph{Целью работы} является создание учебной операционной системы под архитектуру AMD64.
+\emph{Целью работы} является создание учебной операционной системы поддерживающей длинный режим.
 
 \subsubsection{Задачи:}
 \begin{enumerate}
 \item Анализ существующих учебных ОС;
 \item Разработка структуры ОС;
-\item Разработка ОС;
+\item Разработка ОС (возможность постепенного усложнения);
 \item Определение последовательности проведения лабораторных работ.
 \end{enumerate}
 
 
 \section{\textbf{Существующие аналоги}}
-\begin{itemize}
-	\item JOS (Используется для выполнения лабораторных работ в MIT);
-	\item xv6 (Используется в теоретическом курсе MIT для изучения основ ОС);
-	\item PhantomEx (32-разрядная многозадачная ОС, предназначенная для изучения
-принципов организации ОС).
-\end{itemize}
+\begin{table}[ht!]
+	\centering
+	\begin{tabular}{|c|c|c|c|}
+	\hline
+	\diagbox[height=2cm,width=12cm]{Характеристика}{ОС} & JOS & xv6 & PhantomEx \\
+	\hline
+	\makecell{Файловая система} & - & + & + \\
+	\hline
+	\makecell{Страничное \\ преобразование} & + & + & + \\
+	\hline
+	\makecell{Многозадачность} & + & + & + \\
+	\hline
+	\makecell{Системные \\ вызовы} & + & + & + \\
+	\hline
+	\makecell{Многопроцессорная \\ обработка} & - & + & - \\
+	\hline
+	\makecell{Длинный режим} & - & - & - \\
+	\hline
+	\makecell{Постепенное усложнение} & + & - & - \\
+	\hline
+	\end{tabular}
+\end{table}
+
+
+\section{\textbf{Структура ОС}}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{dia/os-structure}
+\end{center}
 
 
 \section{\textbf{Основные допущения и ограничения}}
@@ -79,11 +104,6 @@
 \item Запрет прерываний в ядре;
 \item Запуск в эмуляторе QEMU.
 \end{itemize}
-
-\section{\textbf{Структура ОС}}
-\begin{center}
-\includegraphics[width=1.0\textwidth]{dia/os-structure}
-\end{center}
 
 
 \section{\textbf{Загрузчик ОС}}
@@ -108,15 +128,15 @@
 \includegraphics[width=.9\textwidth]{pdf/long-mode-4kb-page-translation}
 
 
-\section{\textbf{Схема алгоритма создания отображения}}
-\begin{center}
-\includegraphics[scale=.35]{pdf/page-translation-schema}
-\end{center}
-
-
 \section{\textbf{Схема алгоритма поиска элемента в таблице страниц}}
 \begin{center}
 \includegraphics[scale=.3]{pdf/page-table-entry-search}
+\end{center}
+
+
+\section{\textbf{Схема алгоритма создания отображения}}
+\begin{center}
+\includegraphics[scale=.35]{pdf/page-translation-schema}
 \end{center}
 
 
@@ -199,20 +219,19 @@
 
 \section{\textbf{Выводы}}
 В результате выполнения работы:
-\begin{enumerate}
+\begin{itemize}
 \item Проведен анализ существующих учебных ОС;
 \item Разработана структура ОС;
 \item Разработана учебная ОС;
 \item Определена последовательность проведения лабораторных работ.
-\end{enumerate}
+\end{itemize}
 
-Особенности разработанной ОС:
+Дальнейшее развитие:
 \begin{itemize}
-\item Двухэтапная загрузка;
-\item Страничное управление памятью;
-\item Прикладные процессы и потоки ядра;
-\item Вытесняющая многозадачность;
-\item Поддержка механизма копирования при записи.
+\item Многопроцессорная обработка и средства синхронизации;
+\item Межпроцессное взаимодействие (IPC);
+\item Файловая система;
+\item Дополнительное оборудование.
 \end{itemize}
 
 \end{document}
