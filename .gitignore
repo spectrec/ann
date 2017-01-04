@@ -7,14 +7,11 @@ obj/
 # Executables
 *.out
 *.bin
+*.strip
 
 src/kernel/boot/bootloader
 src/kernel/loader/loader
 src/kernel/kernel
-src/kernel/lib/i386
-src/kernel/lib/x86_64
-src/stdlib/i386
-src/stdlib/x86_64
 
 # Debug files
 *.debug
@@ -44,3 +41,22 @@ tags
 *.bbl
 .deps
 doc/tex/inc/*
+
+# Autotools
+*.a
+*.in
+*.guess
+*.status
+*.sub
+COPYING
+INSTALL
+missing
+depcomp
+install-sh
+compile
+.dirstamp
+configure
+autom4te.cache
+Makefile
+Makefile.part
+aclocal.m4

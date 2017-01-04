@@ -89,14 +89,14 @@ void schedule(void);
 
 #define TASK_MAX_CNT	1024
 
-#define TASK_STATIC_INITIALIZER(name_) {				\
-	extern uint8_t _binary_user_## name_ ##_bin_start[];		\
-	extern uint8_t _binary_user_## name_ ##_bin_end[];		\
-									\
-	uint8_t *binary_ = _binary_user_## name_ ##_bin_start;	\
-	uint8_t *end_ = _binary_user_## name_ ##_bin_end;		\
-									\
-	task_create(#name_, binary_, end_ - binary_);			\
+#define TASK_STATIC_INITIALIZER(name_) {					\
+	extern uint8_t _binary_## ___ ## user_## name_ ##_bin_start[];		\
+	extern uint8_t _binary_## ___ ## user_## name_ ##_bin_end[];		\
+										\
+	uint8_t *binary_ = _binary_## ___ ## user_## name_ ##_bin_start;	\
+	uint8_t *end_ = _binary_## ___ ## user_## name_ ##_bin_end;		\
+										\
+	task_create(#name_, binary_, end_ - binary_);				\
 }
 
 #endif
