@@ -27,6 +27,18 @@ drop: clean
 clean: Makefile
 	$(MAKE) -f Makefile clean
 
+
+# qemu-specific
+qemu-gdb: Makefile
+	$(MAKE) -f Makefile $@
+
+qemu: Makefile
+	$(MAKE) -f Makefile $@
+
+qemu-no-reboot: Makefile
+	$(MAKE) -f Makefile $@
+
+
 # to make `automake' happy
 all-am:
 clean-am:

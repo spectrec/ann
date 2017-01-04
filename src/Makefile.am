@@ -6,7 +6,7 @@ KERNEL = kernel/kernel
 
 IMAGE = kernel.img
 
-all-local:
+${IMAGE}: all
 	dd if=/dev/zero of=${IMAGE} bs=1M count=40
 	dd if=$(BOOTLOADER) of=${IMAGE} conv=notrunc
 	dd if=$(LOADER) of=${IMAGE} seek=1 conv=notrunc
