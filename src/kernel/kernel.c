@@ -29,6 +29,7 @@ void kernel_panic(const char *fmt, ...)
 	}
 }
 
+#if LAB >= 3
 struct page32 {
 	uint32_t ref;
 	uint64_t links;
@@ -69,35 +70,19 @@ void kernel_init_mmap(void)
 	pages32 = (struct page32 *)config->pages.ptr;
 	cpu->pml4[0] = 0; // remove unneeded mappings
 
-	// First of all - convert `page32' into 64-bit `page'.
-	// And rebuild free list
+	// Convert `page32' into 64-bit `page'. And rebuild free list
 	uint32_t used_pages = 0;
 	for (int64_t i = state.pages_cnt-1; i >= 0; i--) {
-		struct page *p = &state.pages[i];
-		uint64_t links = pages32[i].links;
-		uint32_t rc = pages32[i].ref;
-
-		memset(p, 0, sizeof(*p));
-		p->ref = rc;
-
-		if (links == 0) {
-			// Page in not inside free list
-			assert(p->ref == 1);
-			used_pages++;
-
-			continue;
-		}
-
-		// Pages inside free list may has ref counter > 0, this means
-		// that page is used, but reuse is allowed.
-		LIST_INSERT_HEAD(&state.free, p, link);
-		assert(p->ref <= 1);
+		// LAB3 code here
+		(void)pages32;
 	}
 
 	terminal_printf("Pages stat: used: `%u', free: `%u'\n",
 			used_pages, state.pages_cnt - used_pages);
 }
+#endif
 
+#if LAB >= 8
 // Just to demonstrate possible threads implementation
 void kernel_thread(void *arg __attribute__((unused)))
 {
@@ -106,6 +91,7 @@ void kernel_thread(void *arg __attribute__((unused)))
 		asm volatile("int3");
 	}
 }
+#endif
 
 void kernel_main(void)
 {
@@ -116,17 +102,24 @@ void kernel_main(void)
 	// Reset terminal
 	terminal_init();
 
-	// show command line
-	monitor_init();
-
+#if LAB >= 3
 	// Initialize memory (process info prepared by loader)
 	kernel_init_mmap();
+#endif
 
-	// Initialize tasks free list
-	task_init();
+#if LAB >= 7
+	// show command line (need only when keyboard enabled)
+	monitor_init();
+#endif
 
+#if LAB >= 4
 	// Init interrupts and exceptions.
 	interrupt_init();
+#endif
+
+#if LAB >= 6
+	// Initialize tasks free list
+	task_init();
 
 	//TASK_STATIC_INITIALIZER(hello);
 
@@ -139,15 +132,26 @@ void kernel_main(void)
 	//TASK_STATIC_INITIALIZER(fork);
 	TASK_STATIC_INITIALIZER(spin);
 	//TASK_STATIC_INITIALIZER(exit);
+#endif
 
+#if LAB >= 8
 	struct task *thread = thread_create("scheduler", kernel_thread, NULL, 0);
 	if (thread == NULL)
 		panic("can't create kernel thread");
 	thread_run(thread);
+#endif
 
+#if LAB >= 7
 	// Do it after creating tasks, because timer may
 	// panic if no tasks found.
 	interrupt_enable();
+#endif
 
+#if LAB >= 6
 	schedule();
+#else
+	terminal_printf("kernel initialized, hang\n");
+	while (1)
+		/* do nothing */;
+#endif
 }

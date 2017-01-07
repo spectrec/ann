@@ -66,11 +66,12 @@ void loader_enter_long_mode(uint64_t kernel_entry_point);
 #define BOOT_MMAP_ADDR		0x7e00
 void loader_main(void)
 {
+	terminal_init();
+
+#if LAB >= 2
 	// Next two parameters are prepared by the first loader
 	struct bios_mmap_entry *mm = (struct bios_mmap_entry *)BOOT_MMAP_ADDR;
 	uint32_t cnt = *((uint32_t *)BOOT_MMAP_ADDR - 1);
-
-	terminal_init();
 
 	uint64_t kernel_entry_point;
 	if (loader_read_kernel(&kernel_entry_point) != 0)
@@ -83,69 +84,47 @@ void loader_main(void)
 	loader_enter_long_mode(kernel_entry_point);
 
 something_bad:
+#endif
 	terminal_printf("Stop loading, hang\n");
 }
 
+// LAB2 Instruction:
+// - use `free_memory' as a pointer to memory, wich may be allocated
 void *loader_alloc(uint64_t size, uint32_t align)
 {
-	uint8_t *ret;
+	(void)size;
+	(void)align;
 
-	ret = (void *)ROUND_UP((uint32_t)free_memory, align);
-	free_memory = ret + size;
-
-	return ret;
+	return NULL;
 }
 
+// LAB2 Instruction:
+// - read elf header (see boot/main.c, but use `elf64_*' here)
+// - check magic
+// - store `kernel_entry_point'
+// - read other segments:
+// -- shift `free_memory' if needed to avoid overlaps in future
+// -- load kernel into physical addresses instead of virtual (drop >4Gb part of virtual address)
 #define KERNEL_BASE_DISK_SECTOR 2048 // 1Mb
 int loader_read_kernel(uint64_t *kernel_entry_point)
 {
-	struct elf64_header *elf_header = loader_alloc(sizeof(*elf_header), PAGE_SIZE);
-
-	if (disk_io_read_segment((uint32_t)elf_header, ATA_SECTOR_SIZE, KERNEL_BASE_DISK_SECTOR) != 0) {
-		terminal_printf("Can't read elf header\n");
-		return -1;
-	}
-	if (elf_header->e_magic != ELF_MAGIC) {
-		terminal_printf("Invalid elf format, magic mismatch (%u)", elf_header->e_magic);
-		return -1;
-	}
-
-	for (struct elf64_program_header *ph = ELF64_PHEADER_FIRST(elf_header);
-	     ph < ELF64_PHEADER_LAST(elf_header); ph++) {
-		// Manually truncate high address part. This is needed to make
-		// mapping [KERNBASE; KERNBASE+FREEMEM) -> [0; FREEMEM) valid
-		ph->p_va &= 0xFFFFFFFFull;
-
-		uint32_t lba = (ph->p_offset / ATA_SECTOR_SIZE) + KERNEL_BASE_DISK_SECTOR;
-		if (disk_io_read_segment(ph->p_va, ph->p_memsz, lba) != 0) {
-			terminal_printf("Can't read segment `%u'", lba);
-			return -1;
-		}
-
-		if (PADDR(free_memory) < PADDR(ph->p_va + ph->p_memsz))
-			// Shift `free_memory'. So `loader_alloc()' will
-			// return free memory areas after this function
-			free_memory = (uint8_t *)(uintptr_t)(ph->p_va + ph->p_memsz);
-	}
-	*kernel_entry_point = elf_header->e_entry;
+	*kernel_entry_point = 0;
 
 	return 0;
 }
 
+// LAB2 Instruction:
+// - check all entry points with type `free' and detect `max_physical_address'
+// - also detect total `pages_cnt', using `max_physical_address' and `PAGE_SIZE'
 #define MEMORY_TYPE_FREE 1
 void loader_detect_memory(struct bios_mmap_entry *mm, uint32_t cnt)
 {
+	(void)mm;
+	(void)cnt;
+
 	max_physical_address = 0;
-	for (uint32_t i = 0; i < cnt; i++) {
-		if (mm[i].type != MEMORY_TYPE_FREE)
-			continue;
-		if (mm[i].base_addr + mm[i].addr_len < max_physical_address)
-			continue;
+	pages_cnt = 0;
 
-		max_physical_address = mm[i].base_addr + mm[i].addr_len;
-	}
-
-	pages_cnt = ROUND_DOWN(max_physical_address, PAGE_SIZE) / PAGE_SIZE;
 	terminal_printf("Available memory: %u Kb (%u pages)\n",
 			(uint32_t)(max_physical_address / 1024), (uint32_t)pages_cnt);
 }

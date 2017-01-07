@@ -9,10 +9,6 @@ entry_long_mode_asm:
 	pushl %ebp
 	movl %esp, %ebp
 
-	// Enable/disable debug (1 - debug, 0 - nodebug)
-	movl $0, %eax
-	popl %edx
-
 	// Reload cs, to switch from compatible mode into long mode
 	ljmp $GD_KT, $reload_decriptors
 
@@ -24,11 +20,10 @@ reload_decriptors:
 	movw %bx, %ss
 
 long_mode:
-	cmpl $0, %eax
-	je enter_kernel
-
+#if LAB < 3
 	addq $0x1, 0xb8000
 	jmp long_mode
+#endif
 
 enter_kernel:
 	movq 8(%ebp), %rax

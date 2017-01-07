@@ -24,30 +24,6 @@
 #include "kernel/interrupt/timer.h"
 #include "kernel/interrupt/keyboard.h"
 
-// interrupt handler entry points
-void interrupt_handler_div_by_zero();
-void interrupt_handler_debug();
-void interrupt_handler_nmi();
-void interrupt_handler_breakpoint();
-void interrupt_handler_overflow();
-void interrupt_handler_bound_range();
-void interrupt_handler_ivalid_opcode();
-void interrupt_handler_device_not_available();
-void interrupt_handler_double_fault();
-void interrupt_handler_invalid_tss();
-void interrupt_handler_segment_not_present();
-void interrupt_handler_stack();
-void interrupt_handler_general_protection();
-void interrupt_handler_page_fault();
-void interrupt_handler_x86_fp_instruction();
-void interrupt_handler_alignment_check();
-void interrupt_handler_machine_check();
-void interrupt_handler_simd_fp();
-void interrupt_handler_security_exception();
-void interrupt_handler_timer();
-void interrupt_handler_keyboard();
-void interrupt_handler_syscall();
-
 static struct descriptor64 idt[256];
 
 static struct tss tss[CPU_MAX_CNT]
@@ -78,6 +54,16 @@ static const char *interrupt_name[256] = {
 	[INTERRUPT_VECTOR_SYSCALL] = "syscall",
 };
 
+// LAB5-6 Instruction:
+// - find page, this address belongs to
+// - if page not found or `r/w' bit is not set -> destroy task (this is invalid app)
+// - if page doesn't contain `cow' bit -> destroy task (attempt to write into protected page)
+// - copy page:
+// -- allocate new page
+// -- map it into `KERNEL_TEMP'
+// -- copy date from origin page
+// -- insert new page instead of origin one
+// -- remove `KERNEL_TEMP' mapping
 #define PAGE_FAULT_ERROR_CODE_P		(1 << 0)
 #define PAGE_FAULT_ERROR_CODE_R_W	(1 << 1)
 #define PAGE_FAULT_ERROR_CODE_U_S	(1 << 2)
@@ -86,33 +72,11 @@ static const char *interrupt_name[256] = {
 void page_fault_handler(struct task *task)
 {
 	uintptr_t va = rcr2();
-	pte_t *pte;
+	pte_t *pte = NULL;
 
-	page_lookup(task->pml4, va, &pte); // to initialize `pte'
-	if ((task->context.error_code & PAGE_FAULT_ERROR_CODE_R_W) == 0 || pte == NULL)
-		// non write error
+	// Your code goes here
+	if (true)
 		goto fail;
-
-	if ((*pte & PTE_COW) != 0) {
-		unsigned perm = *pte & PTE_FLAGS_MASK;
-		struct page *new;
-
-		assert((*pte & PTE_P) != 0);
-		if ((new = page_alloc()) == NULL) {
-			terminal_printf("page_fault_handler: can't allocate page\n");
-			goto fail;
-		}
-
-		terminal_printf("page fault: va = %p, new page: %p\n", va, new);
-		if (page_insert(task->pml4, new, KERNEL_TEMP, perm | PTE_W) != 0)
-			goto fail;
-		memcpy((void *)KERNEL_TEMP, (void *)ROUND_DOWN(va, PAGE_SIZE), PAGE_SIZE);
-		if (page_insert(task->pml4, new, ROUND_DOWN(va, PAGE_SIZE), (*pte & PTE_FLAGS_MASK) | PTE_W) != 0)
-			goto fail;
-		page_remove(task->pml4, KERNEL_TEMP);
-
-		task_run(task);
-	}
 
 fail:
 	terminal_printf("Page fault at `%lx', opration: %s, accessed by: %s\n", va,
@@ -140,41 +104,14 @@ void interrupt_handler(struct task_context ctx)
 	cpu->task->context = ctx;
 	cpu->task->state = TASK_STATE_READY;
 
+	// LAB4 Instruction:
+	// - process known interrupt, and use default handler for all others.
+	// - take into account, that kernel uses `int 3' to call `schedule()'
 	switch (ctx.interrupt_number) {
-	case INTERRUPT_VECTOR_BREAKPOINT: {
-		// Used to update task context
-		if ((ctx.cs & GDT_DPL_U) != 0)
-			return task_run(cpu->task);
-
-		// Kernel thread task switch
-		return schedule();
-	}
 	case INTERRUPT_VECTOR_PAGE_FAULT:
 		return page_fault_handler(cpu->task);
-	case INTERRUPT_VECTOR_DIV_BY_ZERO:
-	case INTERRUPT_VECTOR_DEBUG:
-	case INTERRUPT_VECTOR_NMI:
-	case INTERRUPT_VECTOR_OVERFLOW:
-	case INTERRUPT_VECTOR_BOUND_RANGE:
-	case INTERRUPT_VECTOR_IVALID_OPCODE:
-	case INTERRUPT_VECTOR_DEVICE_NOT_AVAILABLE:
-	case INTERRUPT_VECTOR_DOUBLE_FAULT:
-	case INTERRUPT_VECTOR_INVALID_TSS:
-	case INTERRUPT_VECTOR_SEGMENT_NOT_PRESENT:
-	case INTERRUPT_VECTOR_STACK:
-	case INTERRUPT_VECTOR_GENERAL_PROTECTION:
-	case INTERRUPT_VECTOR_X86_FP_INSTRUCTION:
-	case INTERRUPT_VECTOR_ALIGNMENT_CHECK:
-	case INTERRUPT_VECTOR_MACHINE_CHECK:
-	case INTERRUPT_VECTOR_SIMD_FP:
-	case INTERRUPT_VECTOR_SECURITY_EXCEPTION:
+	default:
 		break;
-	case INTERRUPT_VECTOR_SYSCALL:
-		return syscall(cpu->task);
-	case INTERRUPT_VECTOR_TIMER:
-		return timer_handler(cpu->task);
-	case INTERRUPT_VECTOR_KEYBOARD:
-		return keyboard_handler(cpu->task);
 	}
 
 	terminal_printf("\nunhandled interrupt: %s (%u)\n",
@@ -248,33 +185,9 @@ void interrupt_init(void)
 		sizeof(idt)-1, idt
 	};
 
-	// XXX: `INTERRUPT_GATE' used everywhere just to simplify code. So `interrupt_handler' shouldn't be reentrant.
-	idt[INTERRUPT_VECTOR_DIV_BY_ZERO] = INTERRUPT_GATE(GD_KT, interrupt_handler_div_by_zero, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_DEBUG] = INTERRUPT_GATE(GD_KT, interrupt_handler_debug, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_NMI] = INTERRUPT_GATE(GD_KT, interrupt_handler_nmi, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_BREAKPOINT] = INTERRUPT_GATE(GD_KT, interrupt_handler_breakpoint, 1, IDT_DPL_U);
-	idt[INTERRUPT_VECTOR_OVERFLOW] = INTERRUPT_GATE(GD_KT, interrupt_handler_overflow, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_BOUND_RANGE] = INTERRUPT_GATE(GD_KT, interrupt_handler_bound_range, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_IVALID_OPCODE] = INTERRUPT_GATE(GD_KT, interrupt_handler_ivalid_opcode, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_DEVICE_NOT_AVAILABLE] = INTERRUPT_GATE(GD_KT, interrupt_handler_device_not_available, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_DOUBLE_FAULT] = INTERRUPT_GATE(GD_KT, interrupt_handler_double_fault, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_INVALID_TSS] = INTERRUPT_GATE(GD_KT, interrupt_handler_invalid_tss, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_SEGMENT_NOT_PRESENT] = INTERRUPT_GATE(GD_KT, interrupt_handler_segment_not_present, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_STACK] = INTERRUPT_GATE(GD_KT, interrupt_handler_stack, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_GENERAL_PROTECTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_general_protection, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_PAGE_FAULT] = INTERRUPT_GATE(GD_KT, interrupt_handler_page_fault, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_X86_FP_INSTRUCTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_x86_fp_instruction, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_ALIGNMENT_CHECK] = INTERRUPT_GATE(GD_KT, interrupt_handler_alignment_check, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_MACHINE_CHECK] = INTERRUPT_GATE(GD_KT, interrupt_handler_machine_check, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_SIMD_FP] = INTERRUPT_GATE(GD_KT, interrupt_handler_simd_fp, 0, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_SECURITY_EXCEPTION] = INTERRUPT_GATE(GD_KT, interrupt_handler_security_exception, 0, IDT_DPL_S);
-
-	// hardware interrups
-	idt[INTERRUPT_VECTOR_TIMER] = INTERRUPT_GATE(GD_KT, interrupt_handler_timer, 1, IDT_DPL_S);
-	idt[INTERRUPT_VECTOR_KEYBOARD] = INTERRUPT_GATE(GD_KT, interrupt_handler_keyboard, 1, IDT_DPL_S);
-
-	// software interrupts
-	idt[INTERRUPT_VECTOR_SYSCALL] = INTERRUPT_GATE(GD_KT, interrupt_handler_syscall, 0, IDT_DPL_U);
+	// LAB4 Instruction: initialize idt, don't forget that interrupts and
+	// exceptions, wich may occur inside kernel space should use IST,
+	// to force stack switch
 
 	// Load idt
 	asm volatile("lidt %0" :: "m" (idtr));
@@ -285,27 +198,9 @@ void interrupt_init(void)
 		*gdt64_entry = SEGMENT_TSS(&tss[j], sizeof(tss[j])-1, TYPE_AVAILABLE_TSS, TSS_DPL_S);
 	}
 
-	// Prepare stack for interrupts
-	for (uintptr_t addr = INTERRUPT_STACK_TOP - INTERRUPT_STACK_SIZE;
-	     addr < INTERRUPT_STACK_TOP; addr += PAGE_SIZE) {
-		struct page *page;
-
-		if ((page = page_alloc()) == NULL)
-			panic("not enough memory for interrup handler stack");
-		if (page_insert(cpu->pml4, page, addr, PTE_W) != 0)
-			panic("can't map stack for interrupt handler");
-	}
-
-	// Prepare stack for exceptions
-	for (uintptr_t addr = EXCEPTION_STACK_TOP - EXCEPTION_STACK_SIZE;
-	     addr < EXCEPTION_STACK_TOP; addr += PAGE_SIZE) {
-		struct page *page;
-
-		if ((page = page_alloc()) == NULL)
-			panic("not enough memory for interrup handler stack");
-		if (page_insert(cpu->pml4, page, addr, PTE_W) != 0)
-			panic("can't map stack for interrupt handler");
-	}
+	// LAB4 Instruction: create and map interrupt stack and exception
+	// stack (use cpu->pml4)
+	(void)cpu;
 
 	// For now this os support only one processor, so we must initialize
 	// only one tss. If you want use more processors -- you should
@@ -318,10 +213,12 @@ void interrupt_init(void)
 	outb(PIC1_DATA, 0xff);
 	outb(PIC2_DATA, 0xff);
 
+#if LAB >= 7
 	apic_enable();
 
 	if (ioapic_init() != 0)
 		panic("ioapic_init failed");
+#endif
 }
 
 void interrupt_enable(void)
