@@ -1,5 +1,3 @@
-%% Преамбула TeX-файла
-
 % 1. Стиль и язык
 \documentclass[utf8x, 12pt]{G7-32} % Стиль (по умолчанию будет 14pt)
 
@@ -21,14 +19,7 @@
 
 \frontmatter % выключает нумерацию ВСЕГО; здесь начинаются ненумерованные главы: реферат, введение, глоссарий, сокращения и прочее.
 
-% Команды \breakingbeforechapters и \nonbreakingbeforechapters
-% управляют разрывом страницы перед главами.
-% По-умолчанию страница разрывается.
-
-% \nobreakingbeforechapters
-% \breakingbeforechapters
-
-\include{00-abstract}
+\include{00-title}
 
 \tableofcontents
 
@@ -39,22 +30,16 @@
 
 \mainmatter % это включает нумерацию глав и секций в документе ниже
 
-\include{20-analysis}
-\include{30-design}
-\include{40-impl}
-\include{50-econom}
-\include{60-ecology}
+\include{20-x86_64-intro}
+\include{21-sources}
+\include{22-boot}
 
-\backmatter %% Здесь заканчивается нумерованная часть документа и начинаются ссылки и
-            %% заключение
+\backmatter %% Здесь заканчивается нумерованная часть документа и начинаются ссылки и заключение
 
 \include{80-conclusion}
 
 \include{81-biblio}
 
 \appendix   % Тут идут приложения
-
-%\include{90-appendix1}
-%\include{91-appendix2}
 
 \end{document}

@@ -6,7 +6,7 @@ D2T=dot2tex -f pgf --crop --docpreamble "\usepackage[T2A]{fontenc} \usepackage[u
 PDFTRIMWHITE=utils/pdftrimwhite
 
 # Output file
-PDF=rpz.pdf
+PDF=doc.pdf
 
 # Input paths
 DIA=graphics/dia
@@ -21,8 +21,8 @@ INC=$(TEX)/inc
 
 # Input files
 # no .tex allowed in MAINTEX!
-MAINTEX=rpz
-BIBFILE=$(TEX)/rpz.bib
+MAINTEX=doc
+BIBFILE=$(TEX)/doc.bib
 PREAMBLE=preamble-std.tex
 STYLES=$(TEX)/GostBase.clo $(TEX)/G7-32.sty $(TEX)/G7-32.cls $(TEX)/G2-105.sty
 PARTS_TEX = $(wildcard $(TEX)/[0-9][0-9]-*.tex)
