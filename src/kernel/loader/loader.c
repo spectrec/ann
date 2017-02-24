@@ -86,6 +86,10 @@ void loader_main(void)
 something_bad:
 #endif
 	terminal_printf("Stop loading, hang\n");
+
+	while (1) {
+		/*do nothing*/
+	}
 }
 
 // LAB2 Instruction:
