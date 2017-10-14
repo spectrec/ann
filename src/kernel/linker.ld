@@ -32,4 +32,10 @@ SECTIONS
 	}
 
 	PROVIDE(end = .);
+
+	/* pass it at the end to avoid problems with debugging symbols
+	 *  see `--build-id' linker option for more information (another way
+	 *  to fix it is to append `-Wl,--build-id=none' into all ldflags)*/
+	.note.gnu.build-id : {
+	}
 }
