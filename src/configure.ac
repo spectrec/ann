@@ -32,7 +32,7 @@ AC_CONFIG_FILES([
 ])
 
 # setup flags
-COMMON_CFLAGS="-Wall -Wextra -Werror -std=gnu11 -ffreestanding -nostdlib -ggdb3"
+COMMON_CFLAGS="-Wall -Wextra -Werror -std=gnu11 -ffreestanding -fno-stack-protector -nostdlib -ggdb3"
 AC_SUBST([COMMON_CFLAGS])
 
 EXTRA_CFLAGS64="-m64 -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2"
